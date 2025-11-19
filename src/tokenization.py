@@ -1,14 +1,15 @@
 import torch
 from transformers import AutoTokenizer
 
-
+# Load the tokenizer = BioClinicalBERT
 def load_tokenizer():
     return AutoTokenizer.from_pretrained(
         "emilyalsentzer/Bio_ClinicalBERT",
         use_fast=True
     )
 
-
+# This function tokenizes long clinical texts using BioClinicalBERT with fixed-length (512) chunks
+# If a document is too long, the overflow creates multiple 512 token chunks
 def tokenize_overflow_fixed_pt(
     df,
     tokenizer,
