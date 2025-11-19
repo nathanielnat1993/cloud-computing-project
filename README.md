@@ -20,12 +20,16 @@ project-root/
 |
 |_ kubernetes/
 |   |_ pvc.yaml # Persistent volume claim
-|   |_ job.yaml # Job manifest
+|   |_ baseline_job.yaml # Job manifest for the baseline model
+|   |_ finetune_job.yaml # Job manifest for the full fine-tuned model
 |
 |_ src/
 |   |_ preprocessing.py # Data preprocessing scripts
-|   |_ model.py # Model definition and training script
-|   |_ evaluate.py # Evaluation metrics
+|   |_ tokenization.py # BioClinicalBERT Tokenization script
+|   |_ baseline_model.py # Baseline model definition and training script (Logistic Rregression)
+|   |_ baseline_evaluate.py # Evaluation metrics for the baseline model (Logistic Regression)
+|   |_ finetune_model.py # Full BioClinicalBERT fine-tuning on GPU
+|   |_ finetune_evaluate.py # Evaluation script for the full fine-tuning model
 |   |_ main.py # Main execution script
 |
 |_ data/
