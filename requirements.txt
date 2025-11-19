@@ -1,0 +1,11 @@
+torch
+torchvision
+torchaudio
+transformers
+accelerate
+scikit-learn
+pandas
+numpy
+pyarrow
+fsspec
+tqdm
