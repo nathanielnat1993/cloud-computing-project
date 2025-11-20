@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: baseline-job
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: baseline
+          image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
+          command: ["python", "src/main.py", "--mode", "baseline"]
+
+          volumeMounts:
+            - name: project-storage
+              mountPath: /project/data
+              subPath: data
+            - name: project-storage
+              mountPath: /project/results
+              subPath: results
+
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+
+      volumes:
+        - name: project-storage
+          persistentVolumeClaim:
+            claimName: naaxk6-pvc
