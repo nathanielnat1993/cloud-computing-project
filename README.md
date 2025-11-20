@@ -16,7 +16,7 @@ The entire workflow is deployed and executed on the Nautilus Cloud Platform usin
 project-root/
 |_ README.md # Project overview and setup instructions
 |_ Dockerfile # Container image definition
-|_ requirements.txt # Python dependencies (or environment.yml for conda)
+|_ requirements.txt # Python dependencies
 |
 |_ kubernetes/
 |   |_ pvc.yaml # Persistent volume claim
