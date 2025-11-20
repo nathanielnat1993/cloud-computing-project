@@ -2,6 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: naaxk6-pvc
+  namespace: gp-engine-mizzou-dsa-cloud
 spec:
   storageClassName: rook-cephfs
   accessModes:
