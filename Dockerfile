@@ -10,6 +10,8 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install --upgrade typing_extensions
+
 # Upgrade PyTorch to v2.6.0 to prevent the previous error I was having
 RUN pip install --upgrade torch==2.6.0 torchvision torchaudio \
     --index-url https://download.pytorch.org/whl/cu118

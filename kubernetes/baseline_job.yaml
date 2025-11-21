@@ -10,6 +10,7 @@ spec:
       containers:
       - name: baseline
         image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
+        imagePullPolicy: Always
         command: ["python", "src/main.py", "--mode", "baseline"]
         volumeMounts:
         - mountPath: /project/data
