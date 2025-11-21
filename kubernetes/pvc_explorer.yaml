@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pvc-explorer
+  namespace: gp-engine-mizzou-dsa-cloud
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+
+      containers:
+      - name: explorer
+        image: ubuntu:22.04
+        command: ["/bin/sh", "-c"]
+        args:
+          - "sleep 36000"
+        volumeMounts:
+        - mountPath: /data
+          name: project-storage
+        resources:
+          limits:
+            memory: 10Gi
+            cpu: "4"
+          requests:
+            memory: 10Gi
+            cpu: "4"
+
+      volumes:
+      - name: project-storage
+        persistentVolumeClaim:
+          claimName: naaxk6-pvc
+
+

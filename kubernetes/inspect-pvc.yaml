@@ -1,16 +1,17 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pvc-explorer
+  name: inspect-pvc
   namespace: gp-engine-mizzou-dsa-cloud
 spec:
+  restartPolicy: Never
   containers:
-  - name: explorer
-    image: ubuntu:20.04
-    command: ["sleep", "infinity"]
+  - name: inspector
+    image: ubuntu:22.04
+    command: ["bash", "-c", "sleep infinity"]
     volumeMounts:
-    - mountPath: /data
-      name: project-storage
+    - name: project-storage
+      mountPath: /data
   volumes:
   - name: project-storage
     persistentVolumeClaim:
