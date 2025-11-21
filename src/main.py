@@ -32,7 +32,7 @@ from baseline_evaluate import (
     report_metrics
 )
 
-RESULTS_DIR = "/project/results"
+RESULTS_DIR = "/project/pvc/results"
 FIG_DIR = os.path.join(RESULTS_DIR, "figures")
 os.makedirs(FIG_DIR, exist_ok = True)
 
@@ -164,7 +164,7 @@ def main():
     args = parser.parse_args()
 
     log("Loading the dataset...")
-    df = pd.read_parquet("/project/data/df_merged_filtered.parquet")
+    df = pd.read_parquet("/project/pvc/data/df_merged_filtered.parquet")
 
     log("Applying text cleaning...")
     df = apply_cleaning(df)
