@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-access
+  namespace: gp-engine-mizzou-dsa-cloud
+spec:
+  restartPolicy: Never
+  containers:
+  - name: pvc-shell
+    image: busybox
+    command: ["sleep", "3600"]
+    volumeMounts:
+    - mountPath: /project
+      name: project-storage
+  volumes:
+  - name: project-storage
+    persistentVolumeClaim:
+      claimName: naaxk6-pvc
