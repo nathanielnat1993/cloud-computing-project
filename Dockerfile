@@ -1,26 +1,24 @@
-# PyTorch 2.6.0 with CUDA 11.8
-FROM pytorch/pytorch:2.6.0-cuda11.8-cudnn8-runtime
+# Start from PyTorch 2.3.0
+FROM pytorch/pytorch:2.3.0-cuda11.8-cudnn8-runtime
 
-# Set working directory
 WORKDIR /project
 
-# dependency list
+# Copy dependencies
 COPY requirements.txt .
 
-# Install all Python dependencies
+# Install everything in one layer
 RUN pip install --no-cache-dir --upgrade typing_extensions \
+    && pip install --no-cache-dir torch==2.6.0 torchvision torchaudio \
+       --index-url https://download.pytorch.org/whl/cu118 \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy project code
+# Copy project files
 COPY src/ ./src
 COPY data/ ./data
 COPY results/ ./results
 
-# Ensure results folder exists
 RUN mkdir -p /project/results/figures
 
-# Set Python path
 ENV PYTHONPATH=/project
 
-# Default entry point
 CMD ["python", "src/main.py"]
