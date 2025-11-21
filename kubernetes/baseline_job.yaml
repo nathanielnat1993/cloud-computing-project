@@ -12,18 +12,23 @@ spec:
         image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
         imagePullPolicy: Always
         command: ["python", "src/main.py", "--mode", "baseline"]
-        volumeMounts:
-        - mountPath: /project/data
-          name: project-storage
         resources:
           requests:
+            nvidia.com/gpu: 1    
             cpu: "1"
             memory: "12Gi"
           limits:
+            nvidia.com/gpu: 1     
             cpu: "2"
             memory: "24Gi"
+        volumeMounts:
+        - mountPath: /project/data
+          name: project-storage
+        - mountPath: /project/results 
+          name: project-storage
       volumes:
       - name: project-storage
         persistentVolumeClaim:
           claimName: naaxk6-pvc
+
 
