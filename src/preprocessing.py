@@ -5,6 +5,8 @@ from sklearn.model_selection import StratifiedGroupKFold
 
 # This function cleans the text/notes column and remove unnesessary texts to improve performance
 def clean_text(text):
+    if text is None or not isinstance(text, str):
+        return ""
     text = re.sub(r"Name:", "", text)
     text = re.sub(r"Facility:", "", text)
     text = re.sub(r"Admission Date:", "", text)
@@ -15,10 +17,7 @@ def clean_text(text):
     text = re.sub(r"_+[\.,;:]*", "", text)
     text = re.sub(r"[|*~()=\[\]]", "", text)
     text = re.sub(r"(?<=\w)-{2,}", "", text)
-    text = re.sub(
-        r"\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?(?=\s+BLOOD\b)",
-        "",
-    )
+    text = re.sub(r"\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?(?=\s+BLOOD\b)", "", text)
     text = re.sub(r"\b\d{1,2}:\d{2}:\d{2}\b", "", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
