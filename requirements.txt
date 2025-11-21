@@ -1,8 +1,8 @@
-torch
-torchvision
-torchaudio
-transformers
-accelerate
+torch==2.3.0
+torchvision==0.18.0
+torchaudio==2.3.0
+transformers<4.46
+accelerate<1.0
 scikit-learn
 pandas
 numpy
