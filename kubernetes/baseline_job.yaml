@@ -16,11 +16,11 @@ spec:
           name: project-storage
         resources:
           requests:
-            cpu: "0.5"
-            memory: "2Gi"
-          limits:
             cpu: "1"
-            memory: "4Gi"
+            memory: "12Gi"
+          limits:
+            cpu: "2"
+            memory: "24Gi"
       volumes:
       - name: project-storage
         persistentVolumeClaim:

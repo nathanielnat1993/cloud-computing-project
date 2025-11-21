@@ -10,6 +10,10 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Upgrade PyTorch to v2.6.0 to prevent the previous error I was having
+RUN pip install --upgrade torch==2.6.0 torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu118
+
 # Copy source code, data folder (empty), and results folder
 COPY src/ ./src
 COPY data/ ./data
