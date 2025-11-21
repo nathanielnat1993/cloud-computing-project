@@ -10,7 +10,7 @@ from sklearn.metrics import (
 )
 
 # target recall of 0.75 since I'm trying to predict as much positive (readmitted) as possible
-def evaluate_with_target_recall(y_true, probas, target_recall=0.75):
+def evaluate_with_target_recall(y_true, probas, target_recall = 0.75):
     thresholds = np.linspace(0.01, 0.99, 99)
     recalls = [
         recall_score(y_true, (probas >= t).astype(int))
@@ -31,9 +31,9 @@ def evaluate_with_target_recall(y_true, probas, target_recall=0.75):
 def report_metrics(name, y_true, y_pred, probas, threshold):
     print("\n=== {} Metrics (threshold = {:.3f}) ===".format(name, threshold))
     print("Accuracy :", accuracy_score(y_true, y_pred))
-    print("Precision:", precision_score(y_true, y_pred, zero_division=0))
-    print("Recall   :", recall_score(y_true, y_pred, zero_division=0))
-    print("F1 Score :", f1_score(y_true, y_pred, zero_division=0))
+    print("Precision:", precision_score(y_true, y_pred, zero_division = 0))
+    print("Recall   :", recall_score(y_true, y_pred, zero_division = 0))
+    print("F1 Score :", f1_score(y_true, y_pred, zero_division = 0))
     print("ROC-AUC  :", roc_auc_score(y_true, probas))
     print("PR-AUC   :", average_precision_score(y_true, probas))
     print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))

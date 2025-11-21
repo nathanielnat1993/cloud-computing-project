@@ -34,7 +34,7 @@ from baseline_evaluate import (
 
 RESULTS_DIR = "/project/results"
 FIG_DIR = os.path.join(RESULTS_DIR, "figures")
-os.makedirs(FIG_DIR, exist_ok=True)
+os.makedirs(FIG_DIR, exist_ok = True)
 
 LOG_FILE = os.path.join(RESULTS_DIR, "execution_log.txt")
 
@@ -46,38 +46,47 @@ def log(msg):
 
 def save_metrics_json(val_dict, test_dict):
     out = {
-        "VAL": val_dict,
-        "TEST": test_dict,
+        "Validation": val_dict,
+        "Test": test_dict,
         "metadata": {
             "model": "BioClinicalBERT + LogisticRegression",
             "timestamp": datetime.utcnow().isoformat()
         }
     }
     with open(os.path.join(RESULTS_DIR, "metrics.json"), "w") as f:
-        json.dump(out, f, indent=4)
+        json.dump(out, f, indent = 2)
 
 
 def save_figures(name, y_true, probas):
+    roc_auc = roc_auc_score(y_true, probas)
+    pr_auc = average_precision_score(y_true, probas)
+    positive_rate = y_true.mean()
+
     # ROC Curve
     fpr, tpr, _ = roc_curve(y_true, probas)
-    plt.figure()
-    plt.plot(fpr, tpr)
+    plt.figure(figsize = (7, 6))
+    plt.plot(fpr, tpr, label = f"ROC Curve (AUC = {roc_auc:.4f})")
+    plt.plot([0, 1], [0, 1], linestyle = "--", color = "gray", label = "Random Guess")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.title(f"ROC Curve ({name})")
+    plt.legend()
+    plt.grid(True)
     plt.savefig(os.path.join(FIG_DIR, f"{name}_roc_curve.png"))
     plt.close()
 
     # Precision-Recall Curve
-    prec, rec, _ = precision_recall_curve(y_true, probas)
-    plt.figure()
-    plt.plot(rec, prec)
+    precision, recall, _ = precision_recall_curve(y_true, probas)
+    plt.figure(figsize = (7, 6))
+    plt.plot(recall, precision, label = f"PR Curve (AUC = {pr_auc:.4f})")
+    plt.axhline(positive_rate, linestyle = "--", color = "red", label = f"Baseline (Pos Rate = {positive_rate:.4f})")
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.title(f"PR Curve ({name})")
+    plt.legend(loc = "upper right")
+    plt.grid(True)
     plt.savefig(os.path.join(FIG_DIR, f"{name}_pr_curve.png"))
     plt.close()
-
 
 # ============================================================
 #  BASELINE MODEL PIPELINE
@@ -115,19 +124,19 @@ def run_baseline(df_train, df_val, df_test, tokenizer):
     test_p = clf.predict_proba(test_doc_emb)[:, 1]
 
     # Thresholded predictions
-    best_t, val_pred  = evaluate_with_target_recall(y_val,  val_p,  target_recall=0.75)
-    _,      test_pred = evaluate_with_target_recall(y_test, test_p, target_recall=0.75)
+    best_t, val_pred  = evaluate_with_target_recall(y_val,  val_p,  target_recall = 0.75)
+    _,      test_pred = evaluate_with_target_recall(y_test, test_p, target_recall = 0.75)
 
     # Print the metrics
-    report_metrics("VAL",  y_val,  val_pred,  val_p,  best_t)
-    report_metrics("TEST", y_test, test_pred, test_p, best_t)
+    report_metrics("Validation",  y_val,  val_pred,  val_p,  best_t)
+    report_metrics("Test", y_test, test_pred, test_p, best_t)
 
     val_results = {
         "threshold": float(best_t),
         "accuracy": float(accuracy_score(y_val, val_pred)),
-        "precision": float(precision_score(y_val, val_pred, zero_division=0)),
-        "recall": float(recall_score(y_val, val_pred, zero_division=0)),
-        "f1": float(f1_score(y_val, val_pred, zero_division=0)),
+        "precision": float(precision_score(y_val, val_pred, zero_division = 0)),
+        "recall": float(recall_score(y_val, val_pred, zero_division = 0)),
+        "f1": float(f1_score(y_val, val_pred, zero_division = 0)),
         "roc_auc": float(roc_auc_score(y_val, val_p)),
         "pr_auc": float(average_precision_score(y_val, val_p)),
         "confusion_matrix": confusion_matrix(y_val, val_pred).tolist()
@@ -136,9 +145,9 @@ def run_baseline(df_train, df_val, df_test, tokenizer):
     test_results = {
         "threshold": float(best_t),
         "accuracy": float(accuracy_score(y_test, test_pred)),
-        "precision": float(precision_score(y_test, test_pred, zero_division=0)),
-        "recall": float(recall_score(y_test, test_pred, zero_division=0)),
-        "f1": float(f1_score(y_test, test_pred, zero_division=0)),
+        "precision": float(precision_score(y_test, test_pred, zero_division = 0)),
+        "recall": float(recall_score(y_test, test_pred, zero_division = 0)),
+        "f1": float(f1_score(y_test, test_pred, zero_division = 0)),
         "roc_auc": float(roc_auc_score(y_test, test_p)),
         "pr_auc": float(average_precision_score(y_test, test_p)),
         "confusion_matrix": confusion_matrix(y_test, test_pred).tolist()
@@ -148,39 +157,38 @@ def run_baseline(df_train, df_val, df_test, tokenizer):
 
 def main():
     start_time = datetime.utcnow()
-    log("Starting baseline job...")
+    log("Starting baseline model (Logistic Regression) job...")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", default="baseline", choices=["baseline"])
+    parser.add_argument("--mode", default = "baseline", choices = ["baseline"])
     args = parser.parse_args()
 
-    log("Loading dataset...")
+    log("Loading the dataset...")
     df = pd.read_parquet("/project/data/df_merged_filtered.parquet")
 
-    log("Applying cleaning...")
+    log("Applying text cleaning...")
     df = apply_cleaning(df)
 
     log("Creating stratified splits...")
     df_train, df_val, df_test = stratified_group_split(df)
 
-    log("Loading tokenizer...")
+    log("Loading the tokenizer...")
     tokenizer = load_tokenizer()
 
     log("Running baseline model pipeline...")
     val_results, test_results, val_p, test_p, y_val, y_test = run_baseline(df_train, df_val, df_test, tokenizer)
 
-    log("Saving metrics JSON...")
+    log("Saving eval results in metrics.json file...")
     save_metrics_json(val_results, test_results)
 
-    log("Saving ROC/PR curves...")
-    save_figures("VAL",  y_val,  val_p)
-    save_figures("TEST", y_test, test_p)
+    log("Saving ROC/PR curve plots...")
+    save_figures("Validation",  y_val,  val_p)
+    save_figures("Test", y_test, test_p)
 
     end_time = datetime.utcnow()
     duration = (end_time - start_time).total_seconds() / 60
 
     log(f"Job completed successfully in {duration:.2f} minutes.")
-
 
 if __name__ == "__main__":
     main()

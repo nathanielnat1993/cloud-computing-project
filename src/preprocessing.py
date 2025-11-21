@@ -36,9 +36,9 @@ def stratified_group_split(df):
     groups = df["subject_id"].values
 
     sgkf = StratifiedGroupKFold(
-        n_splits=10,
-        shuffle=True,
-        random_state=1
+        n_splits = 10,
+        shuffle = True,
+        random_state = 1
     )
 
     all_indices = []
@@ -51,8 +51,8 @@ def stratified_group_split(df):
     train_indices = [all_indices[i][1] for i in range(0, 8)]
     train_indices = np.concatenate(train_indices)
 
-    df_train = df.iloc[train_indices].reset_index(drop=True)
-    df_val = df.iloc[val_indices].reset_index(drop=True)
-    df_test = df.iloc[test_indices].reset_index(drop=True)
+    df_train = df.iloc[train_indices].reset_index(drop = True)
+    df_val = df.iloc[val_indices].reset_index(drop = True)
+    df_test = df.iloc[test_indices].reset_index(drop = True)
 
     return df_train, df_val, df_test

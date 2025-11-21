@@ -17,7 +17,7 @@ spec:
         args:
           - "sleep 36000"
         volumeMounts:
-        - mountPath: /data
+        - mountPath: /project
           name: project-storage
         resources:
           limits:
