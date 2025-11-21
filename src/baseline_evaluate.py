@@ -9,18 +9,23 @@ from sklearn.metrics import (
     average_precision_score
 )
 
-# This selects the smallest threshold that reaches at least my target recall of 0.75
-# If there's no threshold that meets the target, select the threshold that gives the highest recall
+# target recall of 0.75 since I'm trying to predict as much positive (readmitted) as possible
 def evaluate_with_target_recall(y_true, probas, target_recall=0.75):
     thresholds = np.linspace(0.01, 0.99, 99)
-    recalls = [recall_score(y_true, (probas >= t).astype(int)) for t in thresholds]
+    recalls = [
+        recall_score(y_true, (probas >= t).astype(int))
+        for t in thresholds
+    ]
     valid_idxs = [i for i, r in enumerate(recalls) if r >= target_recall]
     if valid_idxs:
-        best_t = thresholds[min(valid_idxs)]
+        # Choose the largest threshold that meets the recall requirement
+        best_t = thresholds[max(valid_idxs)]
     else:
+        # If can't hit the target recall, choose threshold with max recall
         best_t = thresholds[int(np.argmax(recalls))]
     preds = (probas >= best_t).astype(int)
     return best_t, preds
+
 
 # Display results
 def report_metrics(name, y_true, y_pred, probas, threshold):
