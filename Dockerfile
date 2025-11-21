@@ -1,22 +1,17 @@
-# Use an official PyTorch GPU-enabled runtime
-FROM pytorch/pytorch:2.3.0-cuda11.8-cudnn8-runtime
+# PyTorch 2.6.0 with CUDA 11.8
+FROM pytorch/pytorch:2.6.0-cuda11.8-cudnn8-runtime
 
-# Set working directory inside the container
+# Set working directory
 WORKDIR /project
 
-# Copy dependency list into container
+# dependency list
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install all Python dependencies
+RUN pip install --no-cache-dir --upgrade typing_extensions \
+    && pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --upgrade typing_extensions
-
-# Upgrade PyTorch to v2.6.0 to prevent the previous error I was having
-RUN pip install --upgrade torch==2.6.0 torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/cu118
-
-# Copy source code, data folder (empty), and results folder
+# Copy project code
 COPY src/ ./src
 COPY data/ ./data
 COPY results/ ./results
@@ -24,8 +19,8 @@ COPY results/ ./results
 # Ensure results folder exists
 RUN mkdir -p /project/results/figures
 
-# Set Python path so imports work across src/
+# Set Python path
 ENV PYTHONPATH=/project
 
-# Run the main script when the container starts
+# Default entry point
 CMD ["python", "src/main.py"]
