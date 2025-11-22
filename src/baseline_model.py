@@ -4,7 +4,7 @@ from transformers import AutoModel
 from sklearn.linear_model import LogisticRegression
 
 # Load the pre-trained BioClinicalBERT encoder onto GPU.
-def load_bioclincial_bert_encoder():
+def load_bioclinical_bert_encoder():
     model = AutoModel.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
     model = model.to("cuda")
     model.eval()
