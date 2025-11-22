@@ -36,7 +36,7 @@ RESULTS_DIR = "/project/pvc/results"
 FIG_DIR = os.path.join(RESULTS_DIR, "figures")
 os.makedirs(FIG_DIR, exist_ok = True)
 
-LOG_FILE = os.path.join(RESULTS_DIR, "execution_log.txt")
+LOG_FILE = os.path.join(RESULTS_DIR, "baseline_execution_log.txt")
 
 def log(msg):
     ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -53,7 +53,7 @@ def save_metrics_json(val_dict, test_dict):
             "timestamp": datetime.utcnow().isoformat()
         }
     }
-    with open(os.path.join(RESULTS_DIR, "metrics.json"), "w") as f:
+    with open(os.path.join(RESULTS_DIR, "baseline_metrics.json"), "w") as f:
         json.dump(out, f, indent = 2)
 
 
@@ -182,8 +182,8 @@ def main():
     save_metrics_json(val_results, test_results)
 
     log("Saving ROC/PR curve plots...")
-    save_figures("Validation",  y_val,  val_p)
-    save_figures("Test", y_test, test_p)
+    save_figures("validation_baseline",  y_val,  val_p)
+    save_figures("test_baseline", y_test, test_p)
 
     end_time = datetime.utcnow()
     duration = (end_time - start_time).total_seconds() / 60
