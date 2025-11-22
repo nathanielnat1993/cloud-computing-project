@@ -4,14 +4,13 @@ metadata:
   name: pvc-access
   namespace: gp-engine-mizzou-dsa-cloud
 spec:
-  restartPolicy: Never
   containers:
   - name: pvc-shell
     image: busybox
-    command: ["sleep", "3600"]
+    command: ["sleep", "360000"]
     volumeMounts:
-    - mountPath: /project
-      name: project-storage
+    - name: project-storage
+      mountPath: /project
   volumes:
   - name: project-storage
     persistentVolumeClaim:

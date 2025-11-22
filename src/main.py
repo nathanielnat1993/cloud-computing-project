@@ -215,7 +215,7 @@ def main():
         print("Starting baseline model job...", flush=True)
 
         print("Loading dataset...", flush=True)
-        df = pd.read_parquet("/project/pvc/df_merged_filtered.parquet")
+        df = pd.read_parquet("/project/data/df_merged_filtered.parquet")
 
         print("Applying text cleaning...", flush=True)
         df = apply_cleaning(df)
