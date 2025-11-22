@@ -1,5 +1,8 @@
 import torch
 from transformers import AutoTokenizer
+import pandas as pd
+import os
+
 
 # Load the tokenizer = BioClinicalBERT
 def load_tokenizer():
@@ -60,4 +63,22 @@ def tokenize_overflow_fixed_pt(
         "labels": chunk_labels,
         "doc_mapping": mapping,
     }
+
+if __name__ == "__main__":
+    # Load your merged parquet from PVC
+    df_path = "/project/data/df_merged_filtered.parquet"
+    df = pd.read_parquet(df_path)
+
+    tokenizer = load_tokenizer()
+    enc = tokenize_overflow_fixed_pt(df, tokenizer)
+
+    out_dir = "/project/data/tokenized"
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Save tokenized enc file
+    out_path = f"{out_dir}/enc_train.pt"
+    torch.save(enc, out_path)
+
+    print(f"Tokenized enc saved to: {out_path}")
+
 
