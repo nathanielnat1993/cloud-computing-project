@@ -9,9 +9,9 @@ spec:
       restartPolicy: Never
       containers:
       - name: baseline
-        image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
+        image: ghcr.io/nathanielnat1993/cloud-computing-project:v32
         imagePullPolicy: Always
-        command: ["python", "/project/src/main.py", "--mode", "baseline"]
+        command: ["sleep", "999999"]
         resources:
           requests:
             nvidia.com/gpu: 1
@@ -22,7 +22,7 @@ spec:
             cpu: "2"
             memory: "24Gi"
         volumeMounts:
-        - mountPath: /project/data
+        - mountPath: /project
           name: project-storage
       volumes:
       - name: project-storage
