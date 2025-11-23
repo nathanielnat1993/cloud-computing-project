@@ -7,7 +7,7 @@ spec:
   template:
     spec:
       terminationGracePeriodSeconds: 600
-      restartPolicy: IfNotPresent
+      restartPolicy: Never
       containers:
       - name: finetune
         image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
