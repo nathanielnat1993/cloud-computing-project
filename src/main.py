@@ -268,15 +268,86 @@ def main():
     # ----------------------------------------------------------
     if args.mode == "finetune":
         print("Starting fine-tuning job...", flush=True)
-
-        # Load from the new tokenized location
-        tokenized_path = os.path.join(args.data_path, "tokenized", "enc_train.pt")
-        print(f"Loading tokenized data from {tokenized_path}...", flush=True)
-        enc_train = torch.load(tokenized_path)
-
+    
+        # Load TRAIN
+        train_path = os.path.join(args.data_path, "tokenized", "enc_train.pt")
+        print(f"Loading TRAIN tokens from {train_path}...", flush=True)
+        enc_train = torch.load(train_path)
+    
+        # Fine-tune model
         print("Fine-tuning on TRAIN split...", flush=True)
-        run_finetuning(enc_train, args.results_path)
+        model = finetune_classifier(enc_train)
+    
+        # Save model
+        model_dir = os.path.join(args.results_path, "finetuned_model")
+        os.makedirs(model_dir, exist_ok=True)
+        model.save_pretrained(model_dir)
+        print(f"Fine-tuned model saved to {model_dir}", flush=True)
+    
+        # Load VAL + TEST for evaluation
+        val_path  = os.path.join(args.data_path, "tokenized", "enc_val.pt")
+        test_path = os.path.join(args.data_path, "tokenized", "enc_test.pt")
+    
+        print(f"Loading VAL tokens from {val_path}...", flush=True)
+        enc_val = torch.load(val_path)
+    
+        print(f"Loading TEST tokens from {test_path}...", flush=True)
+        enc_test = torch.load(test_path)
+    
+        # Run inference on chunks
+        from finetune_model import infer_logits
+        from finetune_evaluate import softmax_np, aggregate_mean, best_threshold_f1, report
+    
+        print("Running inference on VAL...", flush=True)
+        val_logits = infer_logits(model, enc_val)
+        val_docs   = aggregate_mean(val_logits, enc_val["doc_mapping"])
+        val_probas = softmax_np(val_docs)[:, 1]
+        y_val      = enc_val["labels"].numpy()
+    
+        print("Running inference on TEST...", flush=True)
+        test_logits = infer_logits(model, enc_test)
+        test_docs   = aggregate_mean(test_logits, enc_test["doc_mapping"])
+        test_probas = softmax_np(test_docs)[:, 1]
+        y_test      = enc_test["labels"].numpy()
+    
+        # Threshold selection on VAL (same pattern as baseline)
+        thr = best_threshold_f1(y_val, val_probas)
+        val_pred  = (val_probas  >= thr).astype(int)
+        test_pred = (test_probas >= thr).astype(int)
+    
+        # Print metrics to logs (same style as baseline)
+        report("FINETUNED VALIDATION", y_val, val_pred, val_probas, thr)
+        report("FINETUNED TEST",       y_test, test_pred, test_probas, thr)
+    
+        # Save JSON output
+        result_json = {
+            "threshold": float(thr),
+            "Validation": {
+                "precision": float(precision_score(y_val, val_pred, zero_division=0)),
+                "recall": float(recall_score(y_val, val_pred, zero_division=0)),
+                "f1": float(f1_score(y_val, val_pred, zero_division=0)),
+                "roc_auc": float(roc_auc_score(y_val, val_probas)),
+            },
+            "Test": {
+                "precision": float(precision_score(y_test, test_pred, zero_division=0)),
+                "recall": float(recall_score(y_test, test_pred, zero_division=0)),
+                "f1": float(f1_score(y_test, test_pred, zero_division=0)),
+                "roc_auc": float(roc_auc_score(y_test, test_probas)),
+            }
+        }
+    
+        with open(os.path.join(args.results_path, "finetuned_metrics.json"), "w") as f:
+            json.dump(result_json, f, indent=2)
+    
+        print(f"Saved metrics to {args.results_path}/finetuned_metrics.json", flush=True)
+    
+        # Save ROC + PR plots
+        save_figures("finetuned_validation", y_val, val_probas, args.results_path)
+        save_figures("finetuned_test",       y_test, test_probas, args.results_path)
+    
+        print("Fine-tuning evaluation completed.", flush=True)
         return
+
 
 
 if __name__ == "__main__":
