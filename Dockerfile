@@ -28,10 +28,6 @@ ENV HF_DATASETS_OFFLINE=1
 # 4. Copy project code
 COPY src/ ./src
 
-# 5. Create mount points for PVC
-RUN mkdir -p /project/data
-RUN mkdir -p /project/results/figures
-
 # 6. Fix Python import path
 ENV PYTHONPATH=/project/src
 
