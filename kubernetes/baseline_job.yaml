@@ -11,7 +11,7 @@ spec:
       - name: baseline
         image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
         imagePullPolicy: Always
-        command: ["python", "src/main.py", "--mode", "baseline"]
+        command: ["python", "/project/src/main.py", "--mode", "baseline"]
         resources:
           requests:
             nvidia.com/gpu: 1

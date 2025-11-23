@@ -27,6 +27,7 @@ COPY src/ /project/src
 
 # Ensure Python imports work
 ENV PYTHONPATH=/project/src
+RUN mkdir -p /project/data
 
 # ENTRYPOINT: must use absolute path
 CMD ["python", "/project/src/main.py"]
