@@ -4,9 +4,12 @@ FROM pytorch/pytorch:2.3.0-cuda11.8-cudnn8-runtime
 ENV HF_HOME=/root/.cache/huggingface
 RUN mkdir -p $HF_HOME
 
+# Create working directory INSIDE the image
+WORKDIR /project
+
 # Install requirements
-COPY requirements.txt /project/
-RUN pip install --no-cache-dir -r /project/requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --upgrade typing_extensions
 
 # Download BioClinicalBERT before offline mode
@@ -22,14 +25,15 @@ EOF
 ENV TRANSFORMERS_OFFLINE=1
 ENV HF_DATASETS_OFFLINE=1
 
+# Cache-bust so rebuild happens
 RUN echo "cache-bust-$(date +%s)" > /tmp/cache_bust
 
-# Copy your code EXACTLY where PVC layout expects it
+# Copy source code to /project/src INSIDE the image
 COPY src/ /project/src
 
-# Ensure Python imports work
+# Ensure imports work
 ENV PYTHONPATH=/project/src
-RUN mkdir -p /project/data
 
-# ENTRYPOINT: must use absolute path
+# ENTRYPOINT: absolute path
 CMD ["python", "/project/src/main.py"]
+
