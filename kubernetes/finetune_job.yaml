@@ -1,34 +1,30 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: baseline-job
+  name: finetune-job
   namespace: gp-engine-mizzou-dsa-cloud
 spec:
   template:
     spec:
       restartPolicy: Never
       containers:
-      - name: baseline
+      - name: finetune
         image: ghcr.io/nathanielnat1993/cloud-computing-project:v32
         imagePullPolicy: Always
-        command: ["python", "/project/src/main.py", "--mode", "baseline", "--data_path", "/project/storage/data"]
+        command: ["python", "/project/src/main.py", "--mode", "finetune", "--data_path", "/project/storage/data"]
         resources:
           requests:
             cpu: "1"
-            memory: "12Gi"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
           limits:
             cpu: "2"
-            memory: "24Gi"
+            memory: "16Gi"
+            nvidia.com/gpu: 1
         volumeMounts:
-        # CHANGED: Mount to /project/storage so we don't hide /project/src
         - mountPath: /project/storage
           name: project-storage
       volumes:
       - name: project-storage
         persistentVolumeClaim:
           claimName: naaxk6-pvc
-
-
-
-
-

@@ -46,11 +46,10 @@ def report(split, y, pred, p, thr):
 
 if __name__ == "__main__":
     # Load tokenized enc file (full dataset)
-    enc = torch.load("/project/data/tokenized/enc_test.pt")
-
+    enc = torch.load("/project/storage/data/tokenized/enc_test.pt")
 
     # Load fine-tuned model
-    model_path = "/project/results/finetuned_model"
+    model_path = "/project/storage/results/finetuned_model"
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
     model = model.to("cuda")
     model.eval()

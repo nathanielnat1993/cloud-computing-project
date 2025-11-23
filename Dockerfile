@@ -22,8 +22,8 @@ AutoModelForSequenceClassification.from_pretrained(model, num_labels=2)
 EOF
 
 # Switch to offline mode AFTER downloading the model
-ENV TRANSFORMERS_OFFLINE=1
-ENV HF_DATASETS_OFFLINE=1
+# ENV TRANSFORMERS_OFFLINE=1
+# ENV HF_DATASETS_OFFLINE=1
 
 # Cache-bust so rebuild happens
 RUN echo "cache-bust-$(date +%s)" > /tmp/cache_bust
