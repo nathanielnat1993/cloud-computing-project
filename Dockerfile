@@ -22,6 +22,8 @@ EOF
 ENV TRANSFORMERS_OFFLINE=1
 ENV HF_DATASETS_OFFLINE=1
 
+RUN echo "cache-bust-$(date +%s)" > /tmp/cache_bust
+
 # Copy your code EXACTLY where PVC layout expects it
 COPY src/ /project/src
 
