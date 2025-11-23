@@ -6,20 +6,21 @@ metadata:
 spec:
   template:
     spec:
-      restartPolicy: Never
+      terminationGracePeriodSeconds: 600
+      restartPolicy: IfNotPresent
       containers:
       - name: finetune
-        image: ghcr.io/nathanielnat1993/cloud-computing-project:v32
+        image: ghcr.io/nathanielnat1993/cloud-computing-project:latest
         imagePullPolicy: Always
         command: ["python", "/project/src/main.py", "--mode", "finetune", "--data_path", "/project/storage/data"]
         resources:
           requests:
-            cpu: "1"
-            memory: "8Gi"
-            nvidia.com/gpu: 1
-          limits:
             cpu: "2"
             memory: "16Gi"
+            nvidia.com/gpu: 1
+          limits:
+            cpu: "4"
+            memory: "32Gi"
             nvidia.com/gpu: 1
         volumeMounts:
         - mountPath: /project/storage
