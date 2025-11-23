@@ -11,7 +11,7 @@ spec:
       - name: baseline
         image: ghcr.io/nathanielnat1993/cloud-computing-project:v32
         imagePullPolicy: Always
-        command: ["sleep", "999999"]
+        command: ["python", "/project/src/main.py", "--mode", "baseline", "--data_path", "/project/storage/data"]
         resources:
           requests:
             nvidia.com/gpu: 1
@@ -22,7 +22,8 @@ spec:
             cpu: "2"
             memory: "24Gi"
         volumeMounts:
-        - mountPath: /project
+        # CHANGED: Mount to /project/storage so we don't hide /project/src
+        - mountPath: /project/storage
           name: project-storage
       volumes:
       - name: project-storage

@@ -32,19 +32,10 @@ from baseline_evaluate import (
 )
 from finetune_model import finetune_classifier
 
-
-# ------------------------------------------------------------------
-# Paths
-# ------------------------------------------------------------------
-RESULTS_DIR = "/project/results"
-FIG_DIR = os.path.join(RESULTS_DIR, "figures")
-os.makedirs(FIG_DIR, exist_ok=True)
-
-
 # ------------------------------------------------------------------
 # Helper: save metrics JSON (BASELINE)
 # ------------------------------------------------------------------
-def save_metrics_json(val_dict, test_dict):
+def save_metrics_json(val_dict, test_dict, results_dir):
     out = {
         "Validation": val_dict,
         "Test": test_dict,
@@ -53,14 +44,21 @@ def save_metrics_json(val_dict, test_dict):
             "timestamp": datetime.utcnow().isoformat(),
         },
     }
-    with open(os.path.join(RESULTS_DIR, "baseline_metrics.json"), "w") as f:
+    # Ensure directory exists
+    os.makedirs(results_dir, exist_ok=True)
+    
+    with open(os.path.join(results_dir, "baseline_metrics.json"), "w") as f:
         json.dump(out, f, indent=2)
 
 
 # ------------------------------------------------------------------
 # Helper: save ROC/PR curves
 # ------------------------------------------------------------------
-def save_figures(name, y_true, probas):
+def save_figures(name, y_true, probas, results_dir):
+    # Create figures subdirectory
+    fig_dir = os.path.join(results_dir, "figures")
+    os.makedirs(fig_dir, exist_ok=True)
+
     roc_auc = roc_auc_score(y_true, probas)
     pr_auc = average_precision_score(y_true, probas)
     positive_rate = y_true.mean()
@@ -75,7 +73,7 @@ def save_figures(name, y_true, probas):
     plt.title(f"ROC Curve ({name})")
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(FIG_DIR, f"{name}_roc_curve.png"))
+    plt.savefig(os.path.join(fig_dir, f"{name}_roc_curve.png"))
     plt.close()
 
     # Precision-Recall Curve
@@ -93,24 +91,29 @@ def save_figures(name, y_true, probas):
     plt.title(f"PR Curve ({name})")
     plt.legend(loc="upper right")
     plt.grid(True)
-    plt.savefig(os.path.join(FIG_DIR, f"{name}_pr_curve.png"))
+    plt.savefig(os.path.join(fig_dir, f"{name}_pr_curve.png"))
     plt.close()
 
 
 # ------------------------------------------------------------------
 # BASELINE PIPELINE
 # ------------------------------------------------------------------
-def run_baseline(df_train, df_val, df_test, tokenizer):
+def run_baseline(df_train, df_val, df_test, tokenizer, data_path, results_path):
 
     print("Tokenizing train/val/test...", flush=True)
     train_enc = tokenize_overflow_fixed_pt(df_train, tokenizer)
     val_enc   = tokenize_overflow_fixed_pt(df_val, tokenizer)
     test_enc  = tokenize_overflow_fixed_pt(df_test, tokenizer)
 
+    # Define tokenized storage path based on input data_path
+    tokenized_dir = os.path.join(data_path, "tokenized")
+    os.makedirs(tokenized_dir, exist_ok=True)
+
     # Save encoded splits for fine-tuning later
-    torch.save(train_enc, "/project/data/tokenized/enc_train.pt")
-    torch.save(val_enc,   "/project/data/tokenized/enc_val.pt")
-    torch.save(test_enc,  "/project/data/tokenized/enc_test.pt")
+    print(f"Saving tokenized data to {tokenized_dir}...", flush=True)
+    torch.save(train_enc, os.path.join(tokenized_dir, "enc_train.pt"))
+    torch.save(val_enc,   os.path.join(tokenized_dir, "enc_val.pt"))
+    torch.save(test_enc,  os.path.join(tokenized_dir, "enc_test.pt"))
 
     print("Loading BioClinicalBERT encoder...", flush=True)
     encoder = load_bioclinical_bert_encoder()
@@ -120,7 +123,7 @@ def run_baseline(df_train, df_val, df_test, tokenizer):
     val_chunk_emb   = chunk_embeddings(val_enc, encoder)
     test_chunk_emb  = chunk_embeddings(test_enc, encoder)
 
-    print("Aggregating chunk → document embeddings...", flush=True)
+    print("Aggregating chunk -> document embeddings...", flush=True)
     train_doc_emb = aggregate_docs(train_chunk_emb, train_enc["doc_mapping"])
     val_doc_emb   = aggregate_docs(val_chunk_emb,   val_enc["doc_mapping"])
     test_doc_emb  = aggregate_docs(test_chunk_emb,  test_enc["doc_mapping"])
@@ -173,7 +176,7 @@ def run_baseline(df_train, df_val, df_test, tokenizer):
 # ------------------------------------------------------------------
 # FINE-TUNING PIPELINE
 # ------------------------------------------------------------------
-def run_finetuning(enc_train):
+def run_finetuning(enc_train, results_path):
     start = datetime.utcnow()
     print("Starting fine-tuning BioClinicalBERT classifier...", flush=True)
 
@@ -184,7 +187,7 @@ def run_finetuning(enc_train):
     print("Initializing classifier...", flush=True)
     model = finetune_classifier(enc_train)
 
-    out_dir = "/project/results/finetuned_model"
+    out_dir = os.path.join(results_path, "finetuned_model")
     os.makedirs(out_dir, exist_ok=True)
     model.save_pretrained(out_dir)
 
@@ -205,7 +208,22 @@ def main():
         choices=["baseline", "finetune"],
         help="Which pipeline to run: 'baseline' or 'finetune'.",
     )
+    # ADDED: Argument to control where input data comes from
+    parser.add_argument(
+        "--data_path",
+        default="/project/storage/data", 
+        help="Path to the folder containing parquet files and tokenized data"
+    )
+    # ADDED: Argument to control where results are saved
+    parser.add_argument(
+        "--results_path",
+        default="/project/storage/results",
+        help="Path to save output figures, metrics, and models"
+    )
     args = parser.parse_args()
+
+    # Ensure results directory exists
+    os.makedirs(args.results_path, exist_ok=True)
 
     # ----------------------------------------------------------
     # BASELINE MODE
@@ -215,7 +233,9 @@ def main():
         print("Starting baseline model job...", flush=True)
 
         print("Loading dataset...", flush=True)
-        df = pd.read_parquet("/project/data/df_merged_filtered.parquet")
+        # Use args.data_path to build the full path
+        parquet_path = os.path.join(args.data_path, "df_merged_filtered.parquet")
+        df = pd.read_parquet(parquet_path)
 
         print("Applying text cleaning...", flush=True)
         df = apply_cleaning(df)
@@ -227,16 +247,17 @@ def main():
         tokenizer = load_tokenizer()
 
         print("Running baseline pipeline...", flush=True)
+        # Pass data_path and results_path to the pipeline
         val_results, test_results, val_p, test_p, y_val, y_test = run_baseline(
-            df_train, df_val, df_test, tokenizer
+            df_train, df_val, df_test, tokenizer, args.data_path, args.results_path
         )
 
         print("Saving eval results...", flush=True)
-        save_metrics_json(val_results, test_results)
+        save_metrics_json(val_results, test_results, args.results_path)
 
         print("Saving curves...", flush=True)
-        save_figures("validation_baseline", y_val, val_p)
-        save_figures("test_baseline",       y_test, test_p)
+        save_figures("validation_baseline", y_val, val_p, args.results_path)
+        save_figures("test_baseline",       y_test, test_p, args.results_path)
 
         duration = (datetime.utcnow() - start_time).total_seconds() / 60
         print(f"Baseline completed in {duration:.2f} minutes.", flush=True)
@@ -248,10 +269,13 @@ def main():
     if args.mode == "finetune":
         print("Starting fine-tuning job...", flush=True)
 
-        enc_train = torch.load("/project/data/tokenized/enc_train.pt")
+        # Load from the new tokenized location
+        tokenized_path = os.path.join(args.data_path, "tokenized", "enc_train.pt")
+        print(f"Loading tokenized data from {tokenized_path}...", flush=True)
+        enc_train = torch.load(tokenized_path)
 
         print("Fine-tuning on TRAIN split...", flush=True)
-        run_finetuning(enc_train)
+        run_finetuning(enc_train, args.results_path)
         return
 
 
