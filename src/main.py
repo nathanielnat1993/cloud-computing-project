@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 
 import torch
 from datetime import datetime
+
+# ⭐ ADDED missing imports you needed for finetuning JSON saving
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -208,13 +210,11 @@ def main():
         choices=["baseline", "finetune"],
         help="Which pipeline to run: 'baseline' or 'finetune'.",
     )
-    # ADDED: Argument to control where input data comes from
     parser.add_argument(
         "--data_path",
         default="/project/storage/data", 
         help="Path to the folder containing parquet files and tokenized data"
     )
-    # ADDED: Argument to control where results are saved
     parser.add_argument(
         "--results_path",
         default="/project/storage/results",
@@ -222,7 +222,6 @@ def main():
     )
     args = parser.parse_args()
 
-    # Ensure results directory exists
     os.makedirs(args.results_path, exist_ok=True)
 
     # ----------------------------------------------------------
@@ -233,7 +232,6 @@ def main():
         print("Starting baseline model job...", flush=True)
 
         print("Loading dataset...", flush=True)
-        # Use args.data_path to build the full path
         parquet_path = os.path.join(args.data_path, "df_merged_filtered.parquet")
         df = pd.read_parquet(parquet_path)
 
@@ -247,7 +245,6 @@ def main():
         tokenizer = load_tokenizer()
 
         print("Running baseline pipeline...", flush=True)
-        # Pass data_path and results_path to the pipeline
         val_results, test_results, val_p, test_p, y_val, y_test = run_baseline(
             df_train, df_val, df_test, tokenizer, args.data_path, args.results_path
         )
@@ -269,22 +266,18 @@ def main():
     if args.mode == "finetune":
         print("Starting fine-tuning job...", flush=True)
     
-        # Load TRAIN
         train_path = os.path.join(args.data_path, "tokenized", "enc_train.pt")
         print(f"Loading TRAIN tokens from {train_path}...", flush=True)
         enc_train = torch.load(train_path)
     
-        # Fine-tune model
         print("Fine-tuning on TRAIN split...", flush=True)
         model = finetune_classifier(enc_train)
     
-        # Save model
         model_dir = os.path.join(args.results_path, "finetuned_model")
         os.makedirs(model_dir, exist_ok=True)
         model.save_pretrained(model_dir)
         print(f"Fine-tuned model saved to {model_dir}", flush=True)
     
-        # Load VAL + TEST for evaluation
         val_path  = os.path.join(args.data_path, "tokenized", "enc_val.pt")
         test_path = os.path.join(args.data_path, "tokenized", "enc_test.pt")
     
@@ -294,7 +287,6 @@ def main():
         print(f"Loading TEST tokens from {test_path}...", flush=True)
         enc_test = torch.load(test_path)
     
-        # Run inference on chunks
         from finetune_model import infer_logits
         from finetune_evaluate import softmax_np, aggregate_mean, best_threshold_f1, report
     
@@ -302,24 +294,33 @@ def main():
         val_logits = infer_logits(model, enc_val)
         val_docs   = aggregate_mean(val_logits, enc_val["doc_mapping"])
         val_probas = softmax_np(val_docs)[:, 1]
-        y_val      = enc_val["labels"].numpy()
+        
+        D = enc_val["doc_mapping"].numpy()
+        y_chunks = enc_val["labels"].numpy()
+        n = int(D.max()) + 1
+        y_val = np.zeros(n, dtype=np.int32)
+        for d in range(n):
+            y_val[d] = y_chunks[D == d][0]
     
         print("Running inference on TEST...", flush=True)
         test_logits = infer_logits(model, enc_test)
         test_docs   = aggregate_mean(test_logits, enc_test["doc_mapping"])
         test_probas = softmax_np(test_docs)[:, 1]
-        y_test      = enc_test["labels"].numpy()
-    
-        # Threshold selection on VAL (same pattern as baseline)
+        
+        D_test = enc_test["doc_mapping"].numpy()
+        y_chunks_test = enc_test["labels"].numpy()
+        n_docs_test = int(D_test.max()) + 1
+        y_test = np.zeros(n_docs_test, dtype=np.int32)
+        for d in range(n_docs_test):
+            y_test[d] = y_chunks_test[D_test == d][0]
+
         thr = best_threshold_f1(y_val, val_probas)
         val_pred  = (val_probas  >= thr).astype(int)
         test_pred = (test_probas >= thr).astype(int)
     
-        # Print metrics to logs (same style as baseline)
         report("FINETUNED VALIDATION", y_val, val_pred, val_probas, thr)
         report("FINETUNED TEST",       y_test, test_pred, test_probas, thr)
     
-        # Save JSON output
         result_json = {
             "threshold": float(thr),
             "Validation": {
@@ -341,7 +342,6 @@ def main():
     
         print(f"Saved metrics to {args.results_path}/finetuned_metrics.json", flush=True)
     
-        # Save ROC + PR plots
         save_figures("finetuned_validation", y_val, val_probas, args.results_path)
         save_figures("finetuned_test",       y_test, test_probas, args.results_path)
     
