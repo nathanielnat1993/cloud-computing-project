@@ -222,15 +222,14 @@ def main():
             df_train, df_val, df_test, tokenizer, args.data_path, args.results_path
         )
 
-        print("Saving eval results...", flush=True)
+        print("Saved eval results...", flush=True)
         save_metrics_json(val_results, test_results, args.results_path)
 
-        print("Saving curves...", flush=True)
+        print("Saved curves...", flush=True)
         save_figures("validation_baseline", y_val, val_p, args.results_path)
         save_figures("test_baseline",       y_test, test_p, args.results_path)
 
-        duration = (datetime.utcnow() - start_time).total_seconds() / 60
-        print(f"Baseline completed in {duration:.2f} minutes.", flush=True)
+        print(f"Baseline job completed.", flush=True)
         return
 
     # ----------------------------------------------------------
@@ -257,7 +256,7 @@ def main():
         model_dir = os.path.join(args.results_path, "finetuned_model")
         os.makedirs(model_dir, exist_ok=True)
         model.save_pretrained(model_dir)
-        print(f"Fine-tuned model saved to {model_dir}", flush=True)
+        print(f"Fine-tuned model saved...", flush=True)
     
         # --- Load validation and test encodings ---
         print("Loading validation and test tokens...", flush=True)
@@ -272,7 +271,7 @@ def main():
         from baseline_evaluate import evaluate_with_target_recall
     
         # --- Validation predictions ---
-        print("Running inference on validation set...", flush=True)
+        print("Generating predictions...", flush=True)
         val_logits = infer_logits(model, enc_val)
         val_docs   = aggregate_mean(val_logits, enc_val["doc_mapping"])
         val_probas = softmax_np(val_docs)[:, 1]
@@ -286,7 +285,6 @@ def main():
             y_val[d] = y_chunks[D == d][0]
     
         # --- Test predictions ---
-        print("Running inference on test set...", flush=True)
         test_logits = infer_logits(model, enc_test)
         test_docs   = aggregate_mean(test_logits, enc_test["doc_mapping"])
         test_probas = softmax_np(test_docs)[:, 1]
@@ -342,13 +340,13 @@ def main():
         metrics_path = os.path.join(args.results_path, "finetuned_metrics.json")
         with open(metrics_path, "w") as f:
             json.dump(result_json, f, indent=2)
-        print(f"Saved metrics to {metrics_path}", flush=True)
+        print(f"Saved metrics...", flush=True)
     
         # Save figures
         save_figures("finetuned_validation", y_val, val_probas, args.results_path)
         save_figures("finetuned_test",       y_test, test_probas, args.results_path)
     
-        print("Fine-tuning evaluation completed.", flush=True)
+        print("Fine-tuning job completed.", flush=True)
         return
 
 
