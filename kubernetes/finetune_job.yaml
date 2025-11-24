@@ -4,6 +4,7 @@ metadata:
   name: finetune-job
   namespace: gp-engine-mizzou-dsa-cloud
 spec:
+  ttlSecondsAfterFinished: 86400
   template:
     spec:
       terminationGracePeriodSeconds: 600
