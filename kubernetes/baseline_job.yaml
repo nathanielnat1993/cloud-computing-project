@@ -16,9 +16,11 @@ spec:
           requests:
             cpu: "1"
             memory: "12Gi"
+            nvidia.com/gpu: 1
           limits:
             cpu: "2"
             memory: "24Gi"
+            nvidia.com/gpu: 1
         volumeMounts:
         # CHANGED: Mount to /project/storage so we don't hide /project/src
         - mountPath: /project/storage
