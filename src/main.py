@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from datetime import datetime
-
-# ⭐ ADDED missing imports you needed for finetuning JSON saving
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -19,7 +17,6 @@ from sklearn.metrics import (
     roc_curve,
     precision_recall_curve,
 )
-
 from preprocessing import apply_cleaning, stratified_group_split
 from tokenization import load_tokenizer, tokenize_overflow_fixed_pt
 from baseline_model import (
@@ -112,7 +109,7 @@ def run_baseline(df_train, df_val, df_test, tokenizer, data_path, results_path):
     os.makedirs(tokenized_dir, exist_ok=True)
 
     # Save encoded splits for fine-tuning later
-    print(f"Saving tokenized data to {tokenized_dir}...", flush=True)
+    print(f"Saving tokenized data...", flush=True)
     torch.save(train_enc, os.path.join(tokenized_dir, "enc_train.pt"))
     torch.save(val_enc,   os.path.join(tokenized_dir, "enc_val.pt"))
     torch.save(test_enc,  os.path.join(tokenized_dir, "enc_test.pt"))
@@ -125,7 +122,7 @@ def run_baseline(df_train, df_val, df_test, tokenizer, data_path, results_path):
     val_chunk_emb   = chunk_embeddings(val_enc, encoder)
     test_chunk_emb  = chunk_embeddings(test_enc, encoder)
 
-    print("Aggregating chunk -> document embeddings...", flush=True)
+    print("Aggregating chunk to document embeddings...", flush=True)
     train_doc_emb = aggregate_docs(train_chunk_emb, train_enc["doc_mapping"])
     val_doc_emb   = aggregate_docs(val_chunk_emb,   val_enc["doc_mapping"])
     test_doc_emb  = aggregate_docs(test_chunk_emb,  test_enc["doc_mapping"])
@@ -173,30 +170,6 @@ def run_baseline(df_train, df_val, df_test, tokenizer, data_path, results_path):
     }
 
     return val_results, test_results, val_p, test_p, y_val, y_test
-
-
-# ------------------------------------------------------------------
-# FINE-TUNING PIPELINE
-# ------------------------------------------------------------------
-def run_finetuning(enc_train, results_path):
-    start = datetime.utcnow()
-    print("Starting fine-tuning BioClinicalBERT classifier...", flush=True)
-
-    print(f"TRAIN chunks: {enc_train['input_ids'].shape[0]}", flush=True)
-    n_docs = int(enc_train["doc_mapping"].max()) + 1
-    print(f"Document count (train): {n_docs}", flush=True)
-
-    print("Initializing classifier...", flush=True)
-    model = finetune_classifier(enc_train)
-
-    out_dir = os.path.join(results_path, "finetuned_model")
-    os.makedirs(out_dir, exist_ok=True)
-    model.save_pretrained(out_dir)
-
-    print(f"Fine-tuned model saved to {out_dir}.", flush=True)
-
-    duration = (datetime.utcnow() - start).total_seconds() / 60
-    print(f"Fine-tuning completed in {duration:.2f} minutes.", flush=True)
 
 
 # ------------------------------------------------------------------
@@ -264,90 +237,119 @@ def main():
     # FINETUNE MODE
     # ----------------------------------------------------------
     if args.mode == "finetune":
-        print("Starting fine-tuning job...", flush=True)
+        print("Starting fine-tuning BioClinicalBERT classifier...", flush=True)
     
+        # Load tokenized train set
         train_path = os.path.join(args.data_path, "tokenized", "enc_train.pt")
-        print(f"Loading TRAIN tokens from {train_path}...", flush=True)
+        print("Loading train tokens...", flush=True)
         enc_train = torch.load(train_path)
     
-        print("Fine-tuning on TRAIN split...", flush=True)
+        # --- Train the classifier ---
+        print("Fine-tuning on train split...", flush=True)
         model = finetune_classifier(enc_train)
     
+        # Move model to GPU if available (redundant but safe)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
+        print(f"Model moved to device: {device}", flush=True)
+    
+        # Save trained model
         model_dir = os.path.join(args.results_path, "finetuned_model")
         os.makedirs(model_dir, exist_ok=True)
         model.save_pretrained(model_dir)
         print(f"Fine-tuned model saved to {model_dir}", flush=True)
     
+        # --- Load validation and test encodings ---
+        print("Loading validation and test tokens...", flush=True)
         val_path  = os.path.join(args.data_path, "tokenized", "enc_val.pt")
         test_path = os.path.join(args.data_path, "tokenized", "enc_test.pt")
+        enc_val   = torch.load(val_path)
+        enc_test  = torch.load(test_path)
     
-        print(f"Loading VAL tokens from {val_path}...", flush=True)
-        enc_val = torch.load(val_path)
-    
-        print(f"Loading TEST tokens from {test_path}...", flush=True)
-        enc_test = torch.load(test_path)
-    
+        # --- Inference helpers ---
         from finetune_model import infer_logits
-        from finetune_evaluate import softmax_np, aggregate_mean, best_threshold_f1, report
+        from finetune_evaluate import softmax_np, aggregate_mean, report
+        from baseline_evaluate import evaluate_with_target_recall
     
-        print("Running inference on VAL...", flush=True)
+        # --- Validation predictions ---
+        print("Running inference on validation set...", flush=True)
         val_logits = infer_logits(model, enc_val)
         val_docs   = aggregate_mean(val_logits, enc_val["doc_mapping"])
         val_probas = softmax_np(val_docs)[:, 1]
-        
+    
+        # Document-level labels (validation)
         D = enc_val["doc_mapping"].numpy()
         y_chunks = enc_val["labels"].numpy()
-        n = int(D.max()) + 1
-        y_val = np.zeros(n, dtype=np.int32)
-        for d in range(n):
+        n_docs_val = int(D.max()) + 1
+        y_val = np.zeros(n_docs_val, dtype=np.int32)
+        for d in range(n_docs_val):
             y_val[d] = y_chunks[D == d][0]
     
-        print("Running inference on TEST...", flush=True)
+        # --- Test predictions ---
+        print("Running inference on test set...", flush=True)
         test_logits = infer_logits(model, enc_test)
         test_docs   = aggregate_mean(test_logits, enc_test["doc_mapping"])
         test_probas = softmax_np(test_docs)[:, 1]
-        
+    
         D_test = enc_test["doc_mapping"].numpy()
         y_chunks_test = enc_test["labels"].numpy()
         n_docs_test = int(D_test.max()) + 1
         y_test = np.zeros(n_docs_test, dtype=np.int32)
         for d in range(n_docs_test):
             y_test[d] = y_chunks_test[D_test == d][0]
-
-        thr = best_threshold_f1(y_val, val_probas)
-        val_pred  = (val_probas  >= thr).astype(int)
+    
+        # --- Target recall threshold (0.75) ---
+        target_recall = 0.75
+        thr, val_pred = evaluate_with_target_recall(
+            y_val, val_probas, target_recall=target_recall
+        )
         test_pred = (test_probas >= thr).astype(int)
     
+        # --- Reporting ---
         report("FINETUNED VALIDATION", y_val, val_pred, val_probas, thr)
         report("FINETUNED TEST",       y_test, test_pred, test_probas, thr)
     
+        # --- Build metrics JSON ---
         result_json = {
-            "threshold": float(thr),
             "Validation": {
+                "threshold": float(thr),
+                "accuracy": float(accuracy_score(y_val, val_pred)),
                 "precision": float(precision_score(y_val, val_pred, zero_division=0)),
                 "recall": float(recall_score(y_val, val_pred, zero_division=0)),
                 "f1": float(f1_score(y_val, val_pred, zero_division=0)),
                 "roc_auc": float(roc_auc_score(y_val, val_probas)),
+                "pr_auc": float(average_precision_score(y_val, val_probas)),
+                "confusion_matrix": confusion_matrix(y_val, val_pred).tolist(),
             },
             "Test": {
+                "accuracy": float(accuracy_score(y_test, test_pred)),
                 "precision": float(precision_score(y_test, test_pred, zero_division=0)),
                 "recall": float(recall_score(y_test, test_pred, zero_division=0)),
                 "f1": float(f1_score(y_test, test_pred, zero_division=0)),
                 "roc_auc": float(roc_auc_score(y_test, test_probas)),
+                "pr_auc": float(average_precision_score(y_test, test_probas)),
+                "confusion_matrix": confusion_matrix(y_test, test_pred).tolist(),
+            },
+            "metadata": {
+                "model": "BioClinicalBERT",
+                "type": "classification-head-only",
+                "threshold_strategy": f"target_recall={target_recall}",
+                "timestamp": datetime.utcnow().isoformat()
             }
         }
     
-        with open(os.path.join(args.results_path, "finetuned_metrics.json"), "w") as f:
+        # Save metrics JSON
+        metrics_path = os.path.join(args.results_path, "finetuned_metrics.json")
+        with open(metrics_path, "w") as f:
             json.dump(result_json, f, indent=2)
+        print(f"Saved metrics to {metrics_path}", flush=True)
     
-        print(f"Saved metrics to {args.results_path}/finetuned_metrics.json", flush=True)
-    
+        # Save figures
         save_figures("finetuned_validation", y_val, val_probas, args.results_path)
         save_figures("finetuned_test",       y_test, test_probas, args.results_path)
     
         print("Fine-tuning evaluation completed.", flush=True)
         return
-
 
 
 if __name__ == "__main__":

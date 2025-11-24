@@ -1,0 +1,30 @@
+2025-11-24T01:07:28.045801415Z Starting fine-tuning job...
+2025-11-24T01:07:28.045855895Z Loading TRAIN tokens from /project/storage/data/tokenized/enc_train.pt...
+2025-11-24T01:07:33.826619309Z Fine-tuning on TRAIN split...
+2025-11-24T01:07:35.134716156Z Some weights of BertForSequenceClassification were not initialized from the model checkpoint at emilyalsentzer/Bio_ClinicalBERT and are newly initialized: ['classifier.bias', 'classifier.weight']
+2025-11-24T01:07:35.134739266Z You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+2025-11-24T01:13:49.920368972Z Fine-tuned model saved to /project/storage/results/finetuned_model
+2025-11-24T01:13:49.920412052Z Loading VAL tokens from /project/storage/data/tokenized/enc_val.pt...
+2025-11-24T01:13:50.459296787Z Loading TEST tokens from /project/storage/data/tokenized/enc_test.pt...
+2025-11-24T01:13:50.976184047Z Running inference on VAL...
+2025-11-24T01:19:41.456254479Z Running inference on TEST...
+2025-11-24T01:25:22.784616777Z 
+2025-11-24T01:25:22.784676567Z === FINETUNED VALIDATION Metrics (threshold = 0.460) ===
+2025-11-24T01:25:22.784684647Z Precision : 0.2520775623268698
+2025-11-24T01:25:22.784691097Z Recall    : 0.7038674033149172
+2025-11-24T01:25:22.784697007Z F1 Score  : 0.3712121212121212
+2025-11-24T01:25:22.784702227Z ROC-AUC   : 0.6301316738816739
+2025-11-24T01:25:22.784707437Z Confusion Matrix:
+2025-11-24T01:25:22.784713167Z  [[5418 5670]
+2025-11-24T01:25:22.784720127Z  [ 804 1911]]
+2025-11-24T01:25:22.784727607Z 
+2025-11-24T01:25:22.784732967Z === FINETUNED TEST Metrics (threshold = 0.460) ===
+2025-11-24T01:25:22.784738447Z Precision : 0.23918269230769232
+2025-11-24T01:25:22.784743897Z Recall    : 0.6901734104046243
+2025-11-24T01:25:22.784749037Z F1 Score  : 0.35525141326986015
+2025-11-24T01:25:22.784754187Z ROC-AUC   : 0.6268776162572806
+2025-11-24T01:25:22.784759957Z Confusion Matrix:
+2025-11-24T01:25:22.784765157Z  [[5228 5697]
+2025-11-24T01:25:22.784770447Z  [ 804 1791]]
+2025-11-24T01:25:22.784775807Z Saved metrics to /project/storage/results/finetuned_metrics.json
+2025-11-24T01:25:23.446163574Z Fine-tuning evaluation completed.

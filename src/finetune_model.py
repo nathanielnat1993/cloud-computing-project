@@ -15,7 +15,6 @@ def subset_by_docs(enc, doc_count, seed = 42):
     mask = torch.isin(enc["doc_mapping"], torch.tensor(pick))
     return {k: v[mask] for k, v in enc.items()}
 
-
 def load_classifier():
     model = AutoModelForSequenceClassification.from_pretrained(
         "emilyalsentzer/Bio_ClinicalBERT",
