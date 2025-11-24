@@ -22,14 +22,15 @@ project-root/
 |   |_ pvc.yaml # Persistent volume claim
 |   |_ baseline_job.yaml # Job manifest for the baseline model
 |   |_ finetune_job.yaml # Job manifest for the full fine-tuned model
+|   |_ pvc-access.yaml # For exploring the PVC
 |
 |_ src/
 |   |_ preprocessing.py # Data preprocessing scripts
 |   |_ tokenization.py # BioClinicalBERT Tokenization script
 |   |_ baseline_model.py # Baseline model definition and training script (Logistic Rregression)
 |   |_ baseline_evaluate.py # Evaluation metrics for the baseline model (Logistic Regression)
-|   |_ finetune_model.py # Full BioClinicalBERT fine-tuning on GPU
-|   |_ finetune_evaluate.py # Evaluation script for the full fine-tuning model
+|   |_ finetune_model.py # BioClinicalBERT fine-tuning (head-classification only) on GPU
+|   |_ finetune_evaluate.py # Evaluation script for the fine-tuning model
 |   |_ main.py # Main execution script
 |
 |_ data/
@@ -37,9 +38,11 @@ project-root/
 |
 |
 |_ results/
-|   |_ metrics.json # Quantitative results
+|   |_ baseline_metrics.json # Evaluation results for the baseline model
+|   |_ finetuned_metrics.json # Evaluation results for the finetuned model
 |   |_ figures/ # Generated plots and visualizations
-|   |_ execution_log.txt # Nautilus job output and timing
+|   |_ baseline_execution_log.txt # Nautilus job output and timing for the baseline model
+|   |_ finetune_execution_log.txt # Nautilus job output and timing for the fine-tuned model
 |
 |_ docs/
     |_ SETUP.md # Detailed setup and execution guide
