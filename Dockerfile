@@ -37,5 +37,3 @@ ENV PYTHONPATH=/project/src
 # ENTRYPOINT: absolute path
 CMD ["python", "/project/src/main.py"]
 
-# rebuild
-# rebuild 2
