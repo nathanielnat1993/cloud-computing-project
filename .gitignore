@@ -45,3 +45,5 @@ results/embeddings/
 .DS_Store
 Thumbs.db
 .vscode/
+.ipynb_checkpoints/
+__pycache__/
