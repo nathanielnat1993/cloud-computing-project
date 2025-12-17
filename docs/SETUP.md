@@ -6,6 +6,8 @@ This document describes how to set up and run the project on the Nautilus Kubern
 - Membership in the class namespace gp-engine-mizzou-dsa-cloud
 - kubectl configured to point to Nautilus
 - Access to the GitLab container registry
+- Source code for this project is available in the class GitLab repository:
+https://gitlab.nrp-nautilus.io/nathanielnat1993/cloud-computing-project
 
 ## Container Image
 All jobs use a custom Docker image built on top of the official PyTorch CUDA runtime image. The image includes all required Python dependencies and a cached copy of BioClinicalBERT to support offline execution on Nautilus. The image is stored in the GitLab container registry and referenced directly in the Kubernetes job manifests.
