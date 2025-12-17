@@ -17,6 +17,8 @@ project-root/
 |_ README.md # Project overview and setup instructions
 |_ Dockerfile # Container image definition
 |_ requirements.txt # Python dependencies
+|_ .gitignore
+|_ .github/workflows
 |
 |_ kubernetes/
 |   |_ pvc.yaml # Persistent volume claim
