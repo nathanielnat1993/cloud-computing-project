@@ -1,5 +1,3 @@
-# Cloud Computing Project – BioClinicalBERT Readmission Prediction
-
 Repository: https://gitlab.nrp-nautilus.io/nathanielnat1993/cloud-computing-project
 
 # Predicting 30-Day Hospital Readmissions Using BioClinicalBERT

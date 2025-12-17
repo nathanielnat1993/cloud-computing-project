@@ -1,55 +1,53 @@
-# Project Setup
-This document describes how to set up and run the project on the Nautilus Kubernetes platform. All modeling experiments were executed on Nautilus using containerized workloads. Local execution was limited to early data preparation steps prior to text preprocessing.
-
-## Prerequisites
-- Access to the Nautilus Kubernetes cluster
-- Membership in the class namespace gp-engine-mizzou-dsa-cloud
-- kubectl configured to point to Nautilus
-- Access to the GitLab container registry
-- Source code for this project is available in the class GitLab repository:
+## Repository
 https://gitlab.nrp-nautilus.io/nathanielnat1993/cloud-computing-project
 
-## Container Image
-All jobs use a custom Docker image built on top of the official PyTorch CUDA runtime image. The image includes all required Python dependencies and a cached copy of BioClinicalBERT to support offline execution on Nautilus. The image is stored in the GitLab container registry and referenced directly in the Kubernetes job manifests.
+## 1. Requirements
+- Access to Nautilus
+- Namespace: gp-engine-mizzou-dsa-cloud
+- kubectl configured
+- Access to GitLab container registry
 
-## Persistent Storage Setup
-A persistent volume claim (PVC) is used to store input data, tokenized outputs, trained models, logs, and evaluation results.
-
-Create the PVC:
+## 2. Create Persistent Volume Claim (PVC)
 kubectl apply -f kubernetes/pvc.yaml -n gp-engine-mizzou-dsa-cloud
-
-Verify the PVC is bound:
+<br>
 kubectl get pvc -n gp-engine-mizzou-dsa-cloud
 
-(Optional) Launch the PVC inspection pod:
+## 3. (Optional) Inspect PVC
 kubectl apply -f kubernetes/pvc-access.yaml -n gp-engine-mizzou-dsa-cloud
-
-(Optional) Inspect PVC contents:
+<br>
 kubectl exec -it pvc-access -n gp-engine-mizzou-dsa-cloud -- sh
+<br>
 ls /project/storage
 
-## Running the Baseline Model
-Launch the baseline job:
-kubectl apply -f kubernetes/baseline_job.yaml -n gp-engine-mizzou-dsa-cloud
+## 4. Dataset Location
+The merged and feature-engineered dataset MUST be stored in:
+<br>
+/project/storage/data/
+<br>
+Example:
+/project/storage/data/df_merged_filtered.parquet
+<br>
+Verify:
+<br>
+kubectl exec -it pvc-access -n gp-engine-mizzou-dsa-cloud -- ls /project/storage/data
 
-Monitor execution:
+## 5. Run Baseline Job
+kubectl apply -f kubernetes/baseline_job.yaml -n gp-engine-mizzou-dsa-cloud
+<br>
 kubectl get pods -n gp-engine-mizzou-dsa-cloud
+<br>
 kubectl logs <baseline-pod-name> -n gp-engine-mizzou-dsa-cloud
 
-The baseline job performs text preprocessing, tokenization, embedding generation using BioClinicalBERT, and logistic regression training.
-
-## Running the Fine-Tuning Model
-Launch the fine-tuning job:
+## 6. Run Fine-Tuning Job
 kubectl apply -f kubernetes/finetune_job.yaml -n gp-engine-mizzou-dsa-cloud
-
-Monitor execution:
+<br>
 kubectl get pods -n gp-engine-mizzou-dsa-cloud
+<br>
 kubectl logs <finetune-pod-name> -n gp-engine-mizzou-dsa-cloud
 
-The fine-tuning job trains only the BioClinicalBERT classification head while keeping encoder layers frozen.
-
-## Outputs
-All outputs are written to the shared PVC and persist across job runs. These include tokenized datasets, trained model artifacts, evaluation metrics, plots, and execution logs. Results are summarized in docs/RESULTS.md.
-
-## Reproducibility
-The project can be reproduced by rebuilding the Docker image, applying the PVC and job manifests, and re-running the Kubernetes Jobs. Fixed random states were used for data splitting to ensure consistent results across runs.
+## 7. Outputs
+All outputs are written to:
+<br>
+/project/storage/
+<br>
+Metrics, logs, and figures persist across job runs.
