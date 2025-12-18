@@ -40,7 +40,6 @@ project-root/
 |_ data/
 |   |_ README.md # Data source and access instructions
 |
-|
 |_ results/
 |   |_ baseline_metrics.json # Evaluation results for the baseline model
 |   |_ finetuned_metrics.json # Evaluation results for the finetuned model
@@ -52,4 +51,11 @@ project-root/
     |_ SETUP.md # Detailed setup and execution guide
     |_ CLOUD_SETUP.md # Nautilus-specific instructions
     |_ RESULTS.md # Results summary and analysis
+    |_ AI-Usage-Appendix.md
+    |_ Nathaniel_Antonio_DSA8420_Report.tex
+    |_ kubectl_describe_baseline_job_screenshot.png
+    |_ kubectl_describe_finetune_job_screenshot.png
+    |_ kubectl_get_pods_screenshot.png
+    |_ kubectl_logs_baseline_job_screenshot.png
+    |_ kubectl_logs_finetune_job_screenshot.png
 ```

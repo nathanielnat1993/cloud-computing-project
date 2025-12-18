@@ -1,0 +1,429 @@
+\documentclass[11pt]{article}
+
+\usepackage{geometry}
+\geometry{
+  letterpaper,
+  margin=1in
+}
+
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{placeins}
+
+
+\onehalfspacing
+
+\title{
+Predicting 30-Day Hospital Readmissions Using BioClinicalBERT
+}
+
+\author{
+Nathaniel Antonio \\
+Student ID: 14479545 \\
+DATA\_SCI 8420 \\
+Nautilus GitLab Repository: \\
+https://gitlab.nrp-nautilus.io/nathanielnat1993/cloud-computing-project
+}
+
+\date{December 17, 2025}
+
+\begin{document}
+
+\maketitle
+
+\noindent\textbf{Project Description:} This project implements a scalable NLP pipeline to predict 30-day hospital readmissions using BioClinicalBERT and clinical discharge summaries.
+
+\begin{abstract}
+Hospital readmissions within 30 days of discharge remain a persistent challenge in healthcare, particularly among adults aged 65 years and older, where unplanned readmissions are associated with higher costs and worse patient outcomes. Accurately identifying patients at elevated risk of readmission is critical for improving discharge planning and targeting early interventions. This project addresses this problem by predicting 30-day hospital readmissions using clinical discharge summaries and BioClinicalBERT, a language model pretrained on biomedical and clinical text.
+
+A scalable NLP pipeline was built using discharge summaries from the MIMIC-IV dataset, restricted to patients aged 65 and older. The end-to-end workflow includes text preprocessing, tokenization, model training, and evaluation, and was executed in a containerized environment using Docker and Kubernetes Jobs on the Nautilus platform. Persistent volume claims were used to manage large clinical text data and to store intermediate artifacts and final results. Two modeling approaches were evaluated: a baseline model using frozen BioClinicalBERT embeddings with logistic regression, and a lightly fine-tuned BioClinicalBERT model in which only the classification head was trained using GPU acceleration.
+
+Model evaluation prioritized recall for the readmitted class to reflect clinical risk considerations, with F1 score and precision--recall AUC reported as secondary metrics. Results show that light fine-tuning improves recall compared to the embedding-based baseline, at the cost of reduced precision. Overall, this work demonstrates a reproducible, cloud-native approach for applying large clinical language models at scale while explicitly addressing the trade-offs involved in recall-focused healthcare prediction tasks.
+\end{abstract}
+
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+
+Hospital readmissions within 30 days of discharge are a major and ongoing problem in healthcare, especially among adults aged 65 and older. In this population, unplanned readmissions are linked to higher costs, worse patient outcomes, and increased strain on both patients and caregivers. From a policy standpoint, readmissions among older adults account for billions of dollars in federal healthcare spending each year, much of it covered by Medicare. Because of this, reducing preventable readmissions remains a high priority for hospitals and public health systems.
+
+One of the biggest challenges in reducing readmissions is identifying high-risk patients before discharge. Discharge summaries contain detailed clinical information about a patient’s hospital stay, but this information is unstructured and difficult to use with traditional models. Many existing readmission models rely mostly on structured data, which can miss important clinical context documented in narrative notes. Recent advances in NLP make it possible to better leverage this unstructured text.
+
+This project focuses on predicting 30-day hospital readmissions among older adults using clinical discharge summaries from the MIMIC-IV dataset. Rather than optimizing for overall accuracy, the emphasis is placed on recall for the readmitted class, since missing a high-risk patient is often more costly than generating false positives. Two approaches are evaluated: a baseline model using frozen BioClinicalBERT embeddings with logistic regression, and a lightly fine-tuned BioClinicalBERT model where only the classification head is trained.
+
+The entire workflow, including preprocessing, modeling, and evaluation, is implemented in a containerized environment using Docker and Kubernetes Jobs on the Nautilus platform, with persistent storage used to manage data and results. This setup supports scalable and reproducible experimentation with clinical text at scale.
+
+\section{Related Work and Literature Review}
+
+Hospital readmission prediction has been widely studied because of its impact on patient outcomes and healthcare costs. Earlier approaches often relied on rule-based scores such as the LACE and HOSPITAL indices, which use a small set of structured variables like length of stay and prior admissions. While these methods are easy to apply, they tend to perform poorly because they ignore the clinical detail contained in unstructured text.
+
+More recent work has shifted toward machine learning and natural language processing approaches that can better leverage clinical notes. Transformer-based models, particularly BioClinicalBERT, have shown strong performance on clinical NLP tasks due to pretraining on large biomedical datasets such as MIMIC. Studies using discharge summaries from MIMIC-IV show that contextual text embeddings capture clinically meaningful information and outperform traditional feature-based models for readmission-related prediction tasks.
+
+Despite these advances, some gaps remain. Most prior studies focus on all-cause readmissions across the entire adult population, rather than on older adults who face the highest readmission risk. In addition, many models are developed as local experiments with limited attention to scalability or reproducibility. This project addresses these gaps by focusing specifically on patients aged 65 and older and by implementing a cloud-native workflow using Docker and Kubernetes on the Nautilus platform.
+
+Finally, while many studies emphasize accuracy or AUC, this work prioritizes recall for the readmitted class. From a clinical standpoint, missing a high-risk patient is often more costly than flagging someone who is not ultimately readmitted.
+
+\section{Methodology and Architecture}
+
+\subsection{Dataset Description and Preprocessing}
+
+This project uses clinical discharge summaries from the MIMIC-IV database, restricted to hospital admissions for adults aged 65 and older. After filtering and preprocessing, the final dataset includes 138,113 admissions. Each record contains a free-text discharge summary, a patient identifier (subject\_id), and a binary outcome variable indicating whether the patient was readmitted within 30 days.
+
+The dataset is imbalanced, with 110,739 non-readmitted cases (80.2\%) and 27,374 readmitted cases (19.8\%). Because patients may have multiple admissions, observations are not independent at the patient level, which directly influenced how the data were split.
+
+Before modeling, discharge summaries were cleaned to remove administrative headers and formatting artifacts such as identifiers, facility metadata, dates, timestamps, and unnecessary punctuation, while preserving clinically relevant content.
+
+The cleaned data were split into training, validation, and test sets using stratified, patient-level splitting. Stratification preserved the readmission class balance, and grouping by subject\_id ensured that all admissions from a given patient appeared in only one split, preventing data leakage.
+
+\subsection{Technical Approach}
+
+This project compares two approaches for predicting 30-day hospital readmissions using clinical discharge summaries. Both methods use BioClinicalBERT to encode unstructured clinical text, but they differ in how much of the model is trained.
+
+The baseline approach uses BioClinicalBERT as a frozen feature extractor. Discharge summaries are tokenized, passed through the pretrained encoder, and aggregated into document-level embeddings. These embeddings are then used to train a class-weighted logistic regression model. This provides a strong and efficient baseline without the cost of training neural network weights.
+
+The second approach applies light fine-tuning. The BioClinicalBERT encoder remains frozen, and only a classification head is trained using a class-weighted loss. This allows the model to better adapt to the readmission task while keeping computational overhead manageable and maintaining a focus on recall for readmitted patients.
+
+\subsection{Cloud Implementation}
+
+All experiments were run as containerized workloads on the Nautilus Kubernetes platform. Docker was used to create a consistent runtime environment, and Kubernetes Jobs handled execution, scheduling, and resource allocation.
+
+A custom Docker image was built on the PyTorch CUDA runtime (pytorch/pytorch:2.3.0-cuda11.8-cudnn8-runtime) to support BioClinicalBERT. All required Python dependencies were installed at build time, and BioClinicalBERT along with its tokenizer and classification head was cached in the image to avoid runtime downloads.
+
+Compute resources were defined through Kubernetes Job manifests. CPU resources were used for preprocessing and the baseline model, while GPU resources were requested for light fine-tuning. Mixed-precision training was enabled for GPU workloads to improve efficiency. Each job ran the same main script, which controlled preprocessing, training, and evaluation.
+
+Input data and outputs were stored on a shared persistent volume claim, allowing results to persist across job runs. This setup supports reproducible, scalable experimentation without relying on local execution.
+
+\section{Implementation Details}
+
+\subsection{Code Organization}
+
+The project is structured to keep preprocessing, modeling, evaluation, and infrastructure clearly separated. All core code lives in the src directory, while Kubernetes manifests and other infrastructure files are stored separately. The main entry point is main.py, which controls whether the baseline or fine-tuning pipeline runs based on command-line arguments.
+
+Text cleaning and dataset splitting are handled in preprocessing.py, and tokenization and text chunking are implemented in tokenization.py. The baseline model uses frozen BioClinicalBERT embeddings with logistic regression and is defined in baseline\_model.py, with evaluation logic in baseline\_evaluate.py. The light fine-tuning approach, which trains only the BioClinicalBERT classification head, is implemented in finetune\_model.py with corresponding evaluation code. All metrics, logs, and figures are written to a dedicated results directory to keep outputs separate from the source code.
+
+\vspace{1em}
+\noindent Repository Structure:
+
+\begin{verbatim}
+project-root/
+|_ README.md # Project overview and setup instructions
+|_ Dockerfile # Container image definition
+|_ requirements.txt # Python dependencies
+|_ .gitignore
+|_ .github/workflows
+|
+|_ kubernetes/
+|   |_ pvc.yaml # Persistent volume claim
+|   |_ baseline_job.yaml # Job manifest for the baseline model
+|   |_ finetune_job.yaml # Job manifest for the full fine-tuned model
+|   |_ pvc-access.yaml # For exploring the PVC
+|
+|_ src/
+|   |_ preprocessing.py # Data preprocessing scripts
+|   |_ tokenization.py # BioClinicalBERT Tokenization script
+|   |_ baseline_model.py # Baseline model definition and training script (Logistic Rregression)
+|   |_ baseline_evaluate.py # Evaluation metrics for the baseline model (Logistic Regression)
+|   |_ finetune_model.py # BioClinicalBERT fine-tuning (head-classification only) on GPU
+|   |_ finetune_evaluate.py # Evaluation script for the fine-tuning model
+|   |_ main.py # Main execution script
+|
+|_ data/
+|   |_ README.md # Data source and access instructions
+|
+|_ results/
+|   |_ baseline_metrics.json # Evaluation results for the baseline model
+|   |_ finetuned_metrics.json # Evaluation results for the finetuned model
+|   |_ figures/ # Generated plots and visualizations
+|   |_ baseline_execution_log.txt # Nautilus job output and timing for the baseline model
+|   |_ finetune_execution_log.txt # Nautilus job output and timing for the fine-tuned model
+|
+|_ docs/
+    |_ SETUP.md # Detailed setup and execution guide
+    |_ CLOUD_SETUP.md # Nautilus-specific instructions
+    |_ RESULTS.md # Results summary and analysis
+\end{verbatim}
+
+
+\subsection{Containerization}
+
+All experiments were run inside Docker containers to ensure a consistent and reproducible runtime environment. A custom image was built on top of the PyTorch CUDA runtime image (pytorch/pytorch:2.3.0-cuda11.8-cudnn8-runtime) to support GPU-based BioClinicalBERT workloads. All Python dependencies were installed during the image build using a requirements.txt file.
+
+BioClinicalBERT and its tokenizer were downloaded and cached at build time to avoid repeated downloads during job execution. The container runs a centralized main.py entry point, allowing the same image to be reused for both baseline and fine-tuning workflows by passing different runtime arguments.
+
+\subsection{Nautilus Setup}
+
+All jobs were executed in the class Kubernetes namespace gp-engine-mizzou-dsa-cloud on the Nautilus platform. Persistent storage was provided through a shared PVC (naaxk6-pvc) with 50 GiB of storage using the rook-cephfs storage class. The PVC was mounted at /project/storage and used to store input data, intermediate artifacts, model outputs, logs, and figures.
+
+A lightweight pvc-access pod was used during development to inspect the mounted volume and verify that files were being written correctly, which helped with debugging file paths and persistence issues.
+
+\subsection{Execution}
+
+Experiments were deployed as Kubernetes Jobs defined in YAML manifests. Separate jobs were used for the baseline and fine-tuning pipelines. The baseline job primarily used CPU resources, while the fine-tuning job requested a GPU to train the BioClinicalBERT classification head. CPU, memory, and GPU requests and limits were explicitly specified to ensure stable execution on shared cluster nodes.
+
+Jobs were launched using kubectl apply and monitored using kubectl logs. Because all inputs and outputs were stored on the shared PVC, results persisted across job runs and could be reused without rerunning earlier steps.
+
+\subsection{Challenges and Solutions}
+
+Several implementation issues were encountered, including GPU scheduling delays and PVC mounts initially masking the source code directory. These were resolved by adjusting resource requests and mounting the PVC to a dedicated subdirectory. Network restrictions on the cluster also required caching BioClinicalBERT during the image build instead of downloading it at runtime. Overall, these adjustments resulted in a stable and reproducible cloud-based workflow.
+
+\section{Results}
+
+\subsection{Computational Performance}
+
+All experiments were run on the Nautilus Kubernetes platform within the class namespace gp-engine-mizzou-dsa-cloud. Both the baseline and light fine-tuning pipelines completed successfully using Kubernetes Jobs with explicitly defined CPU, memory, and GPU resources.
+
+The baseline job ran for approximately 80 minutes. It requested 1 CPU core and 12 GiB of memory, with limits set to 2 CPU cores and 24 GiB. Although the baseline model uses logistic regression, a GPU was allocated to support embedding generation using the BioClinicalBERT encoder. Most of the runtime was spent generating and aggregating chunk-level embeddings for long discharge summaries.
+
+The fine-tuning job completed in approximately 22 minutes. This job requested 2 CPU cores, 16 GiB of memory, and 1 GPU, with limits of 4 CPU cores and 32 GiB. GPU acceleration was used to train the BioClinicalBERT classification head and perform inference. Mixed-precision training improved efficiency and reduced GPU memory usage.
+
+All jobs reached a Completed state with exit code 0. Persistent storage via a shared PVC ensured that data, intermediate artifacts, logs, and results persisted across job runs. No end-to-end modeling was performed locally; local work was limited to earlier data preparation steps prior to text preprocessing.
+
+\subsection{Model/Analysis Results}
+
+Model performance was evaluated using a recall-focused thresholding strategy. For both models, the decision threshold was selected to achieve a target recall of approximately 0.75 on the validation set, reflecting the clinical importance of minimizing missed readmissions.
+
+\paragraph{Baseline Model:}
+The baseline model uses frozen BioClinicalBERT embeddings with a logistic regression classifier. On the held-out test set, it achieved a recall of 0.76 and a precision of 0.26, resulting in an F1 score of 0.38. The model achieved a ROC-AUC of 0.68 and a PR-AUC of 0.35. Despite its simplicity, this approach provides a strong and computationally stable reference when paired with recall-driven thresholding.
+
+\subsubsection{Baseline Model Visualizations}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{validation_baseline_roc_curve.png}
+    \includegraphics[width=0.48\linewidth]{validation_baseline_pr_curve.png}
+    \caption{Baseline model performance on the validation set. Left: ROC curve. Right: Precision–recall curve.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{test_baseline_roc_curve.png}
+    \includegraphics[width=0.48\linewidth]{test_baseline_pr_curve.png}
+    \caption{Baseline model performance on the test set. Left: ROC curve. Right: Precision–recall curve.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{1.png}
+    \includegraphics[width=0.48\linewidth]{2.png}
+    \caption{Baseline model metrics. Left: validation set. Right: test set.}
+\end{figure}
+
+\paragraph{Lightly Fine-Tuned Model:}
+The lightly fine-tuned model trains only the BioClinicalBERT classification head while keeping the encoder frozen. This model increased recall to 0.81 on the test set but reduced precision to 0.22, yielding an F1 score of 0.35. ROC-AUC and PR-AUC decreased to 0.63 and 0.28, respectively. These results show improved sensitivity at the cost of increased false positives.
+
+\subsubsection{Lightly Fine-Tuned Model Visualizations}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{finetuned_validation_roc_curve.png}
+    \includegraphics[width=0.48\linewidth]{finetuned_validation_pr_curve.png}
+    \caption{Fine-tuned model performance on the validation set. Left: ROC curve. Right: Precision–recall curve.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{finetuned_test_roc_curve.png}
+    \includegraphics[width=0.48\linewidth]{finetuned_test_pr_curve.png}
+    \caption{Fine-tuned model performance on the test set. Left: ROC curve. Right: Precision–recall curve.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{3.png}
+    \includegraphics[width=0.48\linewidth]{4.png}
+    \caption{Fine-tuned model metrics. Left: validation set. Right: test set.}
+\end{figure}
+
+\subsection{Reproducibility}
+
+The workflow is fully reproducible on Nautilus. Random seeds were fixed where applicable, including stratified group-based data splitting to prevent patient-level leakage. Given the same Docker image, data, and Kubernetes manifests, results can be reliably reproduced. Minor variability may occur due to GPU-level nondeterminism, but overall performance metrics remain stable.
+
+\section{Discussion and Analysis}
+
+\subsection{Interpretation}
+
+The results align well with the original goal of this project: identifying patients at high risk of 30-day readmission with an emphasis on recall rather than overall accuracy. When paired with a recall-targeted thresholding strategy, both models successfully prioritized sensitivity to readmissions.
+
+The baseline model using frozen BioClinicalBERT embeddings and logistic regression performed better than expected. Despite its simplicity, it achieved recall around 0.75 on the test set while maintaining reasonable ROC-AUC and PR-AUC values. This suggests that pretrained BioClinicalBERT embeddings already capture clinically meaningful signals related to readmission risk without requiring additional fine-tuning.
+
+Light fine-tuning further increased recall to just over 0.80, confirming that training a task-specific classification head helps the model adapt to the readmission task. However, this gain came with clear trade-offs. Precision declined, and overall discrimination metrics were slightly lower than the baseline. In practice, this means the fine-tuned model flags more true readmissions but also increases false positives.
+
+Overall, the results highlight a common trade-off in clinical prediction tasks: improving sensitivity often comes at the expense of precision. Whether this trade-off is acceptable depends on how predictions are used in downstream clinical workflows.
+
+\subsection{Limitations and Scalability}
+
+This work has several limitations. The analysis relies on discharge summaries from a single dataset (MIMIC-IV), which may limit generalizability to other health systems. Only unstructured text was used, and structured clinical or socioeconomic variables were not incorporated. In addition, fine-tuning was intentionally limited to the classification head, which constrained how much the model could adapt to the task.
+
+From a scalability perspective, the workflow itself scales well. Containerization, Kubernetes Jobs, and persistent storage make it straightforward to process larger datasets or run additional experiments. However, full end-to-end fine-tuning or larger models would require more careful GPU scheduling and resource optimization.
+
+\subsection{Lessons Learned}
+
+This project reinforced that model complexity alone does not guarantee better results. A relatively simple baseline can perform competitively when paired with strong pretrained embeddings and appropriate evaluation strategies. From an infrastructure standpoint, Kubernetes and cloud-based tooling proved effective for running reproducible, long-running NLP experiments. Overall, the project provided practical experience balancing model performance, computational cost, and clinical priorities.
+
+\section{Conclusion}
+
+This project demonstrated a scalable and reproducible approach to predicting 30-day hospital readmissions among older adults using clinical discharge summaries and BioClinicalBERT. Two models were evaluated: a baseline model using frozen BioClinicalBERT embeddings with logistic regression, and a lightly fine-tuned BioClinicalBERT model that trained only a classification head. Both approaches achieved strong recall under a recall-focused thresholding strategy, with light fine-tuning further improving sensitivity at the cost of lower precision.
+
+A key takeaway is that more complex models do not automatically lead to better outcomes. The baseline model performed competitively while requiring fewer computational resources, highlighting the value of strong pretrained representations and careful evaluation. At the same time, light fine-tuning showed how targeted adaptation can improve recall when sensitivity is the primary clinical objective.
+
+Future work could extend this pipeline by incorporating structured clinical features, exploring parameter-efficient or full fine-tuning strategies, or validating performance on external datasets. From a systems perspective, this project shows that cloud-native tools such as Docker, Kubernetes Jobs, and persistent storage provide a reliable foundation for large-scale clinical NLP experimentation.
+
+\clearpage
+\section{References}
+
+\noindent\hangindent=0.25in
+\hangafter=1
+Johnson, A. E. W., Bulgarelli, L., Pollard, T. J., Horng, S., Celi, L. A., \& Mark, R. G. (2023). \textit{MIMIC-IV (version 2.2)}. PhysioNet. \url{https://physionet.org/content/mimiciv/2.2/}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Johnson, A., Pollard, T., Horng, S., Celi, L. A., \& Mark, R. (2023). \textit{MIMIC-IV-Note: Deidentified free-text clinical notes (version 2.2)}. PhysioNet. \url{https://physionet.org/content/mimic-iv-note/2.2/}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+National Research Platform. (n.d.). \textit{Nautilus HyperCluster}. \url{https://nationalresearchplatform.org}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Shakya, P., Khaneja, A., \& Wagholikar, K. B. (2025). \textit{Predicting 30-Days Hospital Readmission for Patients with Heart Failure Using Electronic Health Record Embeddings: Comparative Evaluation}. JMIR medical informatics, 13, e73020. \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC12646029/}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Almeida, T., Moreno, P., \& Barata, C. (2025). \textit{Prediction of 30-day hospital readmission with clinical notes and EHR information}. arXiv preprint arXiv:2503.23050. \url{https://arxiv.org/abs/2503.23050}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Alsentzer, E., Murphy, J., Boag, W., Weng, W. H., Jin, D., Naumann, T., \& McDermott, M. (2019). \textit{Publicly Available Clinical BERT Embeddings}. arXiv preprint arXiv:1904.03323. \url{https://arxiv.org/abs/1904.03323}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Centers for Medicare \& Medicaid Services. (n.d.). \textit{Impact of Hospital Readmissions Reduction Initiatives on Vulnerable Populations}. \url{https://www.cms.gov/files/document/impact-readmissions-reduction-initiatives-report.pdf}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Johnson, A. E. W., Bulgarelli, L., Shen, L., et al. (2023). \textit{MIMIC-IV, a freely accessible electronic health record dataset}. Scientific Data, 10(1), 1. \url{https://doi.org/10.1038/s41597-022-01899-x}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Health Catalyst. (n.d.). \textit{Improved Care Transitions Reduces Readmissions Saving \$3.2M Annually}. \url{https://www.healthcatalyst.com/learn/success-stories/care-transitions-allina-health}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Sun, Chia-Hui, Chou, Yin-Yi, Lee, Yu-Shan, Weng, Shuo-Chun, Lin, Cheng-Fu, Kuo, Fu-Hsuan, Hsu, Shan, \& Lin, Shih-Yi. (2022).
+\textit{Prediction of 30-day readmission in hospitalized older adults using comprehensive geriatric assessment and the LACE index and HOSPITAL score}.
+\url{https://www.researchgate.net/publication/366617083_Prediction_of_30-Day_Readmission_in_Hospitalized_Older_Adults_Using_Comprehensive_Geriatric_Assessment_and_LACE_Index_and_HOSPITAL_Score}
+
+\vspace{0.6em}
+\noindent\hangindent=0.25in
+\hangafter=1
+Pandey, Sanjib Raj, Tile, Joy Dooshima, \& Oghaz, Mahdi Maktab Dar. (2025).
+\textit{Predicting 30-day hospital readmissions using ClinicalT5 with structured and unstructured electronic health records}.
+PLOS ONE, 20(9), e0328848.
+\url{https://doi.org/10.1371/journal.pone.0328848}
+
+\appendix
+\section{Appendices}
+
+\subsection{Kubernetes YAML Manifests}
+
+This appendix includes the full Kubernetes YAML manifests used to deploy and execute the project on the Nautilus platform. These files define the persistent storage configuration, baseline and fine-tuning jobs, and auxiliary pods used for debugging and validation.
+
+Included manifests:
+\begin{itemize}
+    \item \texttt{pvc.yaml}: Persistent volume claim configuration for shared project storage
+    \item \texttt{baseline\_job.yaml}: Kubernetes Job definition for the baseline model
+    \item \texttt{finetune\_job.yaml}: Kubernetes Job definition for the light fine-tuning model
+    \item \texttt{pvc-access.yaml}: Utility pod for inspecting the mounted persistent volume
+\end{itemize}
+
+These manifests were applied using standard \texttt{kubectl apply} commands and executed within the \texttt{gp-engine-mizzou-dsa-cloud} namespace.
+
+\subsection{Nautilus Execution Evidence}
+
+To verify successful execution on the Nautilus cluster, screenshots of Kubernetes command outputs are included in this appendix. These screenshots provide evidence of job submission, execution status, and log output.
+
+Included screenshots:
+\begin{itemize}
+    \item \texttt{kubectl get pods} showing completed baseline and fine-tuning pods
+    \item \texttt{kubectl logs} output from the baseline job pod
+    \item \texttt{kubectl logs} output from the fine-tuning job pod
+    \item \texttt{kubectl describe pod} output for the baseline job pod
+    \item \texttt{kubectl describe pod} output for the fine-tuning job pod
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=\linewidth]{5.png}
+        \caption{kubectl get pods} showing completed baseline and fine-tuning pods.}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=\linewidth]{6.png}
+        \caption{kubectl logs output from the baseline job pod.}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=\linewidth]{7.png}
+        \caption{kubectl logs output from the fine-tuning job pod.}
+    \end{subfigure}
+
+    \caption{Kubernetes pod execution evidence for baseline and fine-tuning workflows on the Nautilus platform.}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=\linewidth]{8.png}
+        \caption{kubectl describe pod output for the baseline job pod, showing allocated CPU and memory resources.}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=\linewidth]{9.png}
+        \caption{kubectl describe pod output for the fine-tuning job pod, showing GPU allocation and execution details.}
+    \end{subfigure}
+
+    \caption{Pod-level resource allocation and execution details for baseline and fine-tuning workflows.}
+\end{figure}
+
+\FloatBarrier
+These outputs confirm that all jobs/pods reached a Completed state and that the modeling pipelines executed as expected.
+
+\vspace{1em}
+
+\subsection{Website Links}
+
+\noindent\textbf{Nautilus GitLab Repository:}
+\url{https://gitlab.nrp-nautilus.io/nathanielnat1993/cloud-computing-project}
+
+\noindent\textbf{LaTex Source:}
+\url{https://www.overleaf.com/read/npntxhjwjfyv#cb1393}
+
+\end{document}
