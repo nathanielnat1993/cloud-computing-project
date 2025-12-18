@@ -100,8 +100,6 @@ Then run:
 git clone https://github.com/nathanielnat1993/cloud-computing-project.git
 cd cloud-computing-project
 
-# Login to GHCR
-echo <YOUR_PAT> | docker login ghcr.io -u nathanielnat1993 --password-stdin
 
 # Build CUDA image
 docker build -t ghcr.io/nathanielnat1993/cloud-computing-project:latest .
@@ -123,17 +121,17 @@ i dont see read and write packages in permissions
 no packages
 i did select my cloud computing repo but there's no packages
 wait how do. i login to ghcr?
-jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ echo | docker login ghcr.io -u nathanielnat1993 --password-stdin
+jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ echo 
 bash: docker: command not found
 jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ 
 how do i add that folder to my repo
-what do i paste? what's the classic pat?
-okay what's next. i pasted the pat
+what do i paste? what's the classic
+okay what's next. i pasted the 
 am i pushing this big ass file?
 not th eparquet but the image
 does it take a while it seemed to stop here but it says it's still running. #16 pushing layer 18defcb9e692 7.97GB / 8.07GB 242.8s
 is there a way to change the commit comment
-do i still need the pat?
+do i still need the 
 okay it says it's completed
 jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ kubectl apply -f kubernetes/pvc.yaml
 Error from server (Forbidden): error when retrieving current configuration of:
@@ -2554,8 +2552,6 @@ Then run:
 git clone https://github.com/nathanielnat1993/cloud-computing-project.git
 cd cloud-computing-project
 
-# Login to GHCR
-echo <YOUR_PAT> | docker login ghcr.io -u nathanielnat1993 --password-stdin
 
 # Build CUDA image
 docker build -t ghcr.io/nathanielnat1993/cloud-computing-project:latest .
@@ -3702,7 +3698,7 @@ i dont see read and write packages in permissions
 no packages
 i did select my cloud computing repo but there's no packages
 wait how do. i login to ghcr?
-jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ | docker login ghcr.io -u nathanielnat1993 --password-stdin
+jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ echo 
 bash: docker: command not found
 jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ 
 how do i add that folder to my repo
