@@ -123,12 +123,11 @@ i dont see read and write packages in permissions
 no packages
 i did select my cloud computing repo but there's no packages
 wait how do. i login to ghcr?
-jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ echo 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 | docker login ghcr.io -u nathanielnat1993 --password-stdin
+jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ echo | docker login ghcr.io -u nathanielnat1993 --password-stdin
 bash: docker: command not found
 jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ 
 how do i add that folder to my repo
 what do i paste? what's the classic pat?
-so this? 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
 okay what's next. i pasted the pat
 am i pushing this big ass file?
 not th eparquet but the image
@@ -3703,12 +3702,11 @@ i dont see read and write packages in permissions
 no packages
 i did select my cloud computing repo but there's no packages
 wait how do. i login to ghcr?
-jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ echo 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 | docker login ghcr.io -u nathanielnat1993 --password-stdin
+jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ | docker login ghcr.io -u nathanielnat1993 --password-stdin
 bash: docker: command not found
 jovyan@jupyter-naaxk6-missouri-edu---2351cae4:~/cloud-computing-project$ 
 how do i add that folder to my repo
 what do i paste? what's the classic pat?
-so this? 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
 okay what's next. i pasted the pat
 am i pushing this big ass file?
 not th eparquet but the image
